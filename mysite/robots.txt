@@ -1,0 +1,30 @@
+﻿User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /termeni-conditii.html
+Allow: /confidentialitate.html
+Allow: /cookies.html
+Allow: /solutionarea-litigiilor.html
+Allow: /assets/
+Disallow: /admin/
+Disallow: /*.json$
+Disallow: /private/
+
+Crawl-delay: 1
+
+Sitemap: https://oges.ro/sitemap.xml
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /

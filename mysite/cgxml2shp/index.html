@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CGXML2SHP v2.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="lib/jszip.min.js"></script>
+<style>
+/* ── Reset ── */
+*, *::before, *::after { -webkit-box-sizing: border-box; box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Variables ── */
+:root {
+  --bg:      #0b0e14;
+  --panel:   #111520;
+  --border:  #1e2d45;
+  --accent:  #00d4ff;
+  --accent2: #00ff9d;
+  --warn:    #ff9d00;
+  --text:    #c8d6e5;
+  --muted:   #4a6278;
+  --grid:    rgba(0,212,255,0.04);
+}
+
+html { font-size: 15px; }
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', 'Segoe UI', Arial, sans-serif;
+  min-height: 100vh;
+  padding: 2rem 1rem 3rem;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.bg-grid {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none; z-index: 0;
+}
+
+.container { max-width: 760px; margin: 0 auto; position: relative; z-index: 1; }
+
+/* ── HEADER ── */
+header { text-align: center; margin-bottom: 2.5rem; }
+
+.header-badge {
+  display: inline-block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--accent);
+  letter-spacing: 0.25em;
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.8rem;
+  margin-bottom: 1rem;
+  background: rgba(0,212,255,0.05);
+  animation: pulse-border 3s infinite;
+}
+
+@keyframes pulse-border {
+  0%,100% { border-color: var(--border); }
+  50%      { border-color: rgba(0,212,255,0.4); }
+}
+
+h1 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 3rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; line-height: 1;
+  margin-bottom: 0.5rem;
+  color: var(--accent);
+  background: linear-gradient(135deg, #fff 0%, #00d4ff 50%, #00ff9d 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.subtitle {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem; color: var(--muted); letter-spacing: 0.12em; margin-top: 0.4rem;
+}
+.subtitle a { color: var(--accent); text-decoration: none; }
+.subtitle a:hover { text-decoration: underline; }
+
+/* ── PANEL ── */
+.panel {
+  background: var(--panel); border: 1px solid var(--border);
+  border-top: 2px solid var(--accent); margin-bottom: 1.2rem;
+  position: relative; overflow: hidden;
+}
+.panel-accent-line {
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.5;
+}
+.panel-header {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.7rem 1.2rem; border-bottom: 1px solid var(--border);
+  background: rgba(0,212,255,0.03);
+}
+.panel-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 8px var(--accent); flex-shrink: 0;
+}
+.panel-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem; letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase;
+}
+.panel-body { padding: 1.4rem 1.2rem; }
+
+/* ── DROP ZONE ── */
+.drop-zone {
+  border: 2px dashed var(--border); padding: 3rem 2rem; text-align: center; cursor: pointer;
+  transition: all 0.25s; position: relative; background: rgba(0,212,255,0.02);
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--accent); background: rgba(0,212,255,0.06);
+  box-shadow: inset 0 0 30px rgba(0,212,255,0.05);
+}
+.drop-zone input[type="file"] {
+  position: absolute; top:0; left:0; right:0; bottom:0;
+  opacity:0; cursor:pointer; width:100%; height:100%; font-size:0;
+}
+.drop-icon { font-size: 2.8rem; margin-bottom: 0.8rem; display: block; }
+.drop-title { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 0.3rem; letter-spacing: 0.05em; }
+.drop-hint { font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.08em; }
+.file-selected { margin-top: 1rem; font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; color: var(--accent2); display: none; word-break: break-all; }
+
+/* ── SCHEMA INFO ── */
+.schema-info {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; color: var(--muted);
+  line-height: 1.9; margin-bottom: 1.2rem; padding: 0.9rem 1rem;
+  border: 1px solid var(--border); background: rgba(0,0,0,0.25);
+}
+.sc { color: var(--warn); } .st { color: var(--accent); } .sf { color: var(--accent2); }
+
+/* ── AXIS INFO BOX ── */
+.axis-box {
+  border: 1px solid rgba(0,212,255,0.25); padding: 0.75rem 1rem;
+  background: rgba(0,212,255,0.05); margin-bottom: 1.2rem;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; line-height: 1.8; color: var(--text);
+}
+.axis-box strong { color: var(--accent); }
+
+/* ── OPTIONS GRID ── */
+.options-grid { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+.option-item {
+  flex: 1 1 46%; display: flex; align-items: flex-start; gap: 0.7rem;
+  padding: 0.8rem 1rem; border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+  cursor: pointer; transition: all 0.2s; user-select: none;
+}
+.option-item:hover { border-color: var(--accent); background: rgba(0,212,255,0.04); }
+.option-item input[type="checkbox"] {
+  appearance: none; width: 16px; height: 16px; min-width: 16px;
+  border: 2px solid var(--muted); background: transparent; cursor: pointer;
+  position: relative; margin-top: 2px; transition: all 0.2s;
+}
+.option-item input[type="checkbox"]:checked {
+  background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px rgba(0,212,255,0.5);
+}
+.option-item input[type="checkbox"]:checked::after {
+  content: '\2713'; position: absolute; top: -2px; left: 1px;
+  font-size: 11px; color: #000; font-weight: 700;
+}
+.opt-text { font-size: 0.82rem; font-weight: 600; letter-spacing: 0.03em; line-height: 1.3; }
+.opt-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--muted); margin-top: 0.15rem; }
+
+/* ── RUN BUTTON ── */
+.btn-run {
+  display: block; width: 100%; padding: 1rem;
+  font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  background: transparent; border: 2px solid var(--accent); color: var(--accent);
+  cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden; margin-bottom: 1.2rem;
+}
+.btn-run:hover:not(:disabled) { color: #000; background: var(--accent); }
+.btn-run:disabled { border-color: var(--muted); color: var(--muted); cursor: not-allowed; opacity: 0.6; }
+
+/* ── PROGRESS ── */
+.progress-wrap { display: none; height: 3px; background: var(--border); margin-bottom: 1.2rem; overflow: hidden; }
+.progress-bar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.3s;
+  box-shadow: 0 0 10px var(--accent);
+}
+.progress-bar.ind {
+  width: 100%;
+  background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer { 0%{ background-position: -200% 0; } 100%{ background-position: 200% 0; } }
+
+/* ── STATS ── */
+.stats-strip {
+  display: none; flex-direction: row; border: 1px solid var(--border);
+  margin-bottom: 1.2rem; overflow: hidden;
+}
+.stat-cell { flex: 1; background: var(--panel); padding: 0.8rem 0.5rem; text-align: center; border-right: 1px solid var(--border); }
+.stat-cell:last-child { border-right: none; }
+.stat-val { font-family: 'Share Tech Mono', monospace; font-size: 1.5rem; color: var(--accent); display: block; line-height: 1; }
+.stat-lbl { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 0.25rem; }
+
+/* ── LOG ── */
+.log-area {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.74rem; line-height: 1.8;
+  max-height: 300px; overflow-y: auto; padding: 1rem; background: #080b10;
+  border: 1px solid var(--border); display: none; margin-bottom: 1.2rem;
+}
+.log-area::-webkit-scrollbar { width: 4px; }
+.log-area::-webkit-scrollbar-track { background: transparent; }
+.log-area::-webkit-scrollbar-thumb { background: var(--border); }
+.log-line { display: block; }
+.log-line.info  { color: var(--text); }
+.log-line.ok    { color: var(--accent2); }
+.log-line.warn  { color: var(--warn); }
+.log-line.error { color: #ff4444; }
+.log-line.head  { color: var(--accent); }
+.log-line.dim   { color: var(--muted); }
+.log-line::before { content: '▶  '; color: var(--muted); }
+
+/* ── DOWNLOAD BUTTON ── */
+.btn-download {
+  display: none; width: 100%; padding: 1rem;
+  font-family: 'Rajdhani', sans-serif; font-size: 1.05rem; font-weight: 700;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  background: rgba(0,255,157,0.07); border: 2px solid var(--accent2); color: var(--accent2);
+  cursor: pointer; transition: all 0.25s;
+}
+.btn-download:hover { color: #000; background: var(--accent2); }
+
+/* ── FOOTER ── */
+footer {
+  text-align: center; margin-top: 2.5rem;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--muted); letter-spacing: 0.15em;
+}
+footer .sep { color: var(--border); }
+
+@media (max-width: 520px) {
+  h1 { font-size: 2rem; }
+  .option-item { flex: 1 1 100%; }
+  .stats-strip { flex-wrap: wrap; }
+  .stat-cell { flex: 0 0 50%; }
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="container">
+
+  <header>
+    <div class="header-badge">GIS CONVERSION TOOL &nbsp;&middot;&nbsp; EPSG:3844 &nbsp;&middot;&nbsp; CGXMLSchema_new_v3</div>
+    <h1>CGXML2SHP v2.0</h1>
+    <div class="subtitle">Convertor cadastru CGXML &rarr; Shapefile &nbsp;&middot;&nbsp; cu enclave &amp; atribute extinse</div>
+    <div class="subtitle"><a href="mailto:ginu.popescu@gmail.com">ginu.popescu@gmail.com</a></div>
+    <div class="subtitle"><a href="../index.html">&larr; Înapoi la OGES</a></div>
+  </header>
+
+  <!-- INPUT -->
+  <div class="panel">
+    <div class="panel-accent-line"></div>
+    <div class="panel-header"><div class="panel-dot"></div><span class="panel-label">Arhivă ZIP de intrare</span></div>
+    <div class="panel-body">
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".zip" title="Selectați arhiva ZIP">
+        <span class="drop-icon">🗜</span>
+        <div class="drop-title">Drag &amp; Drop arhiva ZIP</div>
+        <div class="drop-hint">sau click pentru selectare &nbsp;&middot;&nbsp; *.zip conținând fișiere *.cgxml</div>
+        <div class="file-selected" id="fileSelected"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTIONS -->
+  <div class="panel">
+    <div class="panel-accent-line"></div>
+    <div class="panel-header"><div class="panel-dot"></div><span class="panel-label">Structură XML &amp; Opțiuni procesare</span></div>
+    <div class="panel-body">
+
+      <div class="schema-info">
+        <span class="sc">// CGXMLSchema_new_v3.xsd — XML DataSet plat (ADO.NET)</span><br>
+        <span class="st">CGXML</span> (rădăcină)<br>
+        &nbsp;&nbsp;├─ <span class="st">FileDescription</span>&nbsp;&nbsp;<span class="sf">FILEID · FILENAME · EXPORTDATE · OPERATIONTYPE</span><br>
+        &nbsp;&nbsp;├─ <span class="st">Land</span>&nbsp;&nbsp;<span class="sf">LANDID · FILEID · MEASUREDAREA · PAPERCADNO · CADSECTOR · ENCLOSED</span><br>
+        &nbsp;&nbsp;├─ <span class="st">Points</span>&nbsp;&nbsp;<span class="sf">POINTID · IMMOVABLEID→Land.LANDID · NO(sort) · X · Y</span><br>
+        &nbsp;&nbsp;├─ <span class="st">Parcel</span>&nbsp;&nbsp;<span class="sf">PARCELID · LANDID · NUMBER · <strong>USECATEGORY</strong> → CatFolos</span><br>
+        &nbsp;&nbsp;├─ <span class="st">Deed</span>&nbsp;&nbsp;<span class="sf">DEEDID · DEEDNUMBER · DEEDDATE · DEEDTYPE · FILEID → <strong>Acte</strong></span><br>
+        &nbsp;&nbsp;├─ <span class="st">Person</span>&nbsp;&nbsp;<span class="sf">FIRSTNAME · LASTNAME · IDCODE · FILEID → <strong>Proprietar</strong></span><br>
+        &nbsp;&nbsp;└─ <span class="st">Building</span>&nbsp;&nbsp;<span class="sf">BUILDINGID · LANDID · BUILDNO · MEASUREDAREA</span><br>
+        <span class="sc">// Enclave: poligoane cu NumParts &gt; 1 (inel exterior + inele interioare CW)</span><br>
+        <span class="sc">// Detectare: suprafață calculată vs MEASUREDAREA + analiză orientare inele</span>
+      </div>
+
+      <div class="axis-box">
+        <strong>Axe coordonate CGXML (Stereo70):</strong>&nbsp;&nbsp;
+        X = Easting (Est)&nbsp;&nbsp;|&nbsp;&nbsp;Y = Northing (Nord)<br>
+        <strong>Shapefile output (EPSG:3844):</strong>&nbsp;&nbsp;
+        shp_x ← X (Easting)&nbsp;&nbsp;|&nbsp;&nbsp;shp_y ← Y (Northing)&nbsp;&mdash;&nbsp;fără inversare de axe
+      </div>
+
+      <div class="options-grid">
+        <label class="option-item">
+          <input type="checkbox" id="optCloseRing" checked>
+          <div>
+            <div class="opt-text">Închide inelul poligon</div>
+            <div class="opt-sub">Repetă primul punct la final<br>dacă nu este deja repetat</div>
+          </div>
+        </label>
+        <label class="option-item">
+          <input type="checkbox" id="optRichDBF" checked>
+          <div>
+            <div class="opt-text">Atribute extinse DBF</div>
+            <div class="opt-sub">MEASUREDAREA · PAPERCADNO<br>CADSECTOR · OPERTYPE · EXPORTDATE</div>
+          </div>
+        </label>
+        <label class="option-item">
+          <input type="checkbox" id="optBuildings">
+          <div>
+            <div class="opt-text">Include construcții</div>
+            <div class="opt-sub">Points.BUILDINGID → strat<br>constructii.shp separat în ZIP</div>
+          </div>
+        </label>
+        <label class="option-item">
+          <input type="checkbox" id="optSwapXY">
+          <div>
+            <div class="opt-text">Forțează inversare X↔Y</div>
+            <div class="opt-sub">Bifează doar dacă CGXML-urile<br>au X=Nord, Y=Est (fișiere vechi)</div>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- RUN -->
+  <button type="button" class="btn-run" id="btnRun" disabled>
+    ▶&nbsp;&nbsp;Procesează fișierele CGXML
+  </button>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar ind" id="progressBar"></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-strip" id="statsStrip">
+    <div class="stat-cell"><span class="stat-val" id="statFiles">0</span><div class="stat-lbl">Fișiere CGXML</div></div>
+    <div class="stat-cell"><span class="stat-val" id="statLands">0</span><div class="stat-lbl">Terenuri Land</div></div>
+    <div class="stat-cell"><span class="stat-val" id="statPolys">0</span><div class="stat-lbl">Poligoane SHP</div></div>
+    <div class="stat-cell"><span class="stat-val" id="statEnclaves">0</span><div class="stat-lbl">Cu enclave</div></div>
+    <div class="stat-cell"><span class="stat-val" id="statPts">0</span><div class="stat-lbl">Puncte totale</div></div>
+  </div>
+
+  <!-- LOG -->
+  <div class="log-area" id="logArea"></div>
+
+  <!-- DOWNLOAD -->
+  <button type="button" class="btn-download" id="btnDownload">
+    ⬇&nbsp;&nbsp;Descarcă arhiva ZIP cu fișierele SHP
+  </button>
+
+  <footer>
+    PROIECȚIE <span class="sep">&middot;</span> EPSG:3844
+    <span class="sep">&middot;</span> Stereo70
+    <span class="sep">&middot;</span> Pulkovo 1942 (Adj 1958)
+    <span class="sep">&middot;</span> CGXMLSchema_new_v3.xsd
+    <span class="sep">&middot;</span> v2.0 — Acte · Proprietar · CatFolos · Enclave
+  </footer>
+
+</div>
+
+<script>
+/*
+ * CGXML to SHP — Browser Shapefile Generator  v2.0
+ * Schema : CGXMLSchema_new_v3.xsd
+ * Output : EPSG:3844 (Stereo70 / Pulkovo 1942 Adj 1958)
+ *
+ * Nou în v2.0:
+ *   - Atribute: Acte (din Deed), Proprietar (din Person: Firstname+Lastname+IDcode),
+ *               CatFolos (din Parcel.USECATEGORY)
+ *   - Suport enclave: poligoane cu mai multe inele (NumParts > 1)
+ *     Detectare: inel outer = CCW, inele inner (enclave) = CW
+ *     Verificare vs MEASUREDAREA pentru logging
+ *
+ * Relaţii schema:
+ *   Points.IMMOVABLEID    → Land.LANDID
+ *   Land.FILEID           → FileDescription.FILEID
+ *   Deed.FILEID           → FileDescription.FILEID  (toate actele fișierului)
+ *   Person.FILEID         → FileDescription.FILEID  (toți proprietarii fișierului)
+ *   Parcel.LANDID         → Land.LANDID
+ *
+ * Coordonate:
+ *   CGXML X = Easting  → SHP x (fără swap implicit)
+ *   CGXML Y = Northing → SHP y
+ */
+
+/* ── PRJ string (EPSG:3844) ── */
+var PRJ = 'PROJCS["Pulkovo_1942_Adj_1958_Stereo70",' +
+  'GEOGCS["GCS_Pulkovo_1942_Adj_1958",' +
+  'DATUM["D_Pulkovo_1942_Adj_1958",' +
+  'SPHEROID["Krassowsky_1940",6378245.0,298.3]],' +
+  'PRIMEM["Greenwich",0.0],' +
+  'UNIT["Degree",0.0174532925199433]],' +
+  'PROJECTION["Double_Stereographic"],' +
+  'PARAMETER["False_Easting",500000.0],' +
+  'PARAMETER["False_Northing",500000.0],' +
+  'PARAMETER["Central_Meridian",25.0],' +
+  'PARAMETER["Scale_Factor",0.99975],' +
+  'PARAMETER["Latitude_Of_Origin",46.0],' +
+  'UNIT["Meter",1.0]]';
+
+/* ── State ── */
+var selectedFile  = null;
+var outputZipBlob = null;
+
+/* ── DOM refs ── */
+var elLog   = document.getElementById('logArea');
+var elRun   = document.getElementById('btnRun');
+var elDl    = document.getElementById('btnDownload');
+var elStats = document.getElementById('statsStrip');
+var elProg  = document.getElementById('progressWrap');
+var elDZ    = document.getElementById('dropZone');
+var elFI    = document.getElementById('fileInput');
+var elFSel  = document.getElementById('fileSelected');
+
+/* ── Logging ── */
+function log(msg, cls) {
+  cls = cls || 'info';
+  elLog.style.display = 'block';
+  var s = document.createElement('span');
+  s.className = 'log-line ' + cls;
+  s.textContent = msg;
+  elLog.appendChild(s);
+  elLog.scrollTop = elLog.scrollHeight;
+}
+function clearLog() {
+  while (elLog.firstChild) elLog.removeChild(elLog.firstChild);
+  elLog.style.display = 'none';
+}
+function setProg(on) { elProg.style.display = on ? 'block' : 'none'; }
+
+/* ── File input ── */
+function handleFile(f) {
+  if (!f) return;
+  if (f.name.toLowerCase().indexOf('.zip') === -1) { alert('Vă rugăm selectați un fișier .zip'); return; }
+  selectedFile = f;
+  elFSel.style.display = 'block';
+  elFSel.textContent = '📁 ' + f.name + '  (' + (f.size / 1024).toFixed(1) + ' KB)';
+  elRun.disabled = false;
+  elDl.style.display = 'none';
+  outputZipBlob = null;
+  elStats.style.display = 'none';
+  clearLog();
+}
+
+elFI.addEventListener('change', function(e) {
+  var files = e.target.files;
+  if (files && files[0]) handleFile(files[0]);
+});
+elDZ.addEventListener('dragover',  function(e){ e.preventDefault(); e.stopPropagation(); elDZ.classList.add('drag-over'); });
+elDZ.addEventListener('dragleave', function(e){ e.preventDefault(); elDZ.classList.remove('drag-over'); });
+elDZ.addEventListener('drop',      function(e){
+  e.preventDefault(); e.stopPropagation(); elDZ.classList.remove('drag-over');
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+/* ── Run ── */
+elRun.addEventListener('click', function() { processAll(); });
+
+function processAll() {
+  if (!selectedFile) return;
+  clearLog(); setProg(true); elRun.disabled = true;
+  elDl.style.display = 'none'; outputZipBlob = null; elStats.style.display = 'none';
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    JSZip.loadAsync(e.target.result).then(function(zip) {
+      return processZip(zip);
+    }).catch(function(err) {
+      log('EROARE JSZip: ' + err.message, 'error');
+      setProg(false); elRun.disabled = false;
+    });
+  };
+  reader.onerror = function() {
+    log('EROARE: Nu s-a putut citi fișierul.', 'error');
+    setProg(false); elRun.disabled = false;
+  };
+  reader.readAsArrayBuffer(selectedFile);
+}
+
+function processZip(zip) {
+  log('Citire arhivă ZIP ...', 'head');
+  var entries = [];
+  zip.forEach(function(relPath, zipFile) {
+    if (!zipFile.dir && relPath.toLowerCase().indexOf('.cgxml') !== -1)
+      entries.push({ path: relPath, file: zipFile });
+  });
+
+  if (entries.length === 0) {
+    log('EROARE: Nu există fișiere .cgxml în arhivă!', 'error');
+    setProg(false); elRun.disabled = false;
+    return Promise.resolve();
+  }
+  log('Găsite ' + entries.length + ' fișier(e) CGXML', 'ok');
+
+  var swapXY    = document.getElementById('optSwapXY').checked;
+  var closeRing = document.getElementById('optCloseRing').checked;
+  var richDBF   = document.getElementById('optRichDBF').checked;
+  var inclBld   = document.getElementById('optBuildings').checked;
+
+  var allLandPolys = [], allBldPolys = [];
+  var totalLands = 0, totalPts = 0, totalEnclaves = 0;
+
+  var chain = Promise.resolve();
+  for (var fi = 0; fi < entries.length; fi++) {
+    (function(idx) {
+      chain = chain.then(function() {
+        var entry = entries[idx];
+        var fname = entry.path.split('/').pop();
+        log('[' + (idx+1) + '/' + entries.length + ']  ' + fname, 'head');
+
+        return entry.file.async('string').then(function(xml) {
+          var result;
+          try { result = parseCGXML(xml, fname, swapXY, closeRing, inclBld); }
+          catch(e) { log('  -> Eroare XML: ' + e.message, 'error'); return; }
+
+          totalLands += result.nLands;
+          log('  Land-uri: ' + result.nLands + '  |  Puncte brute: ' + result.nRawPts, 'dim');
+          if (result.nSkipped > 0) log('  Ignorate (< 3 puncte): ' + result.nSkipped, 'warn');
+
+          for (var i = 0; i < result.landPolys.length; i++) {
+            var poly = result.landPolys[i];
+            poly.attrs.ID = allLandPolys.length + 1;
+            var nPts = 0;
+            for (var r = 0; r < poly.rings.length; r++) nPts += poly.rings[r].length;
+            totalPts += nPts;
+            if (poly.rings.length > 1) totalEnclaves++;
+            log('  OK LANDID=' + poly.attrs.LANDID +
+                '  rings=' + poly.rings.length +
+                '  pct=' + nPts +
+                '  PAPERCADNO="' + (poly.attrs.PAPERCADNO || '-') + '"' +
+                (poly.rings.length > 1 ? '  [ENCLAVĂ]' : ''), poly.rings.length > 1 ? 'warn' : 'ok');
+            allLandPolys.push(poly);
+          }
+
+          if (inclBld) {
+            for (var j = 0; j < result.bldPolys.length; j++) {
+              var bp = result.bldPolys[j]; bp.attrs.ID = allBldPolys.length + 1;
+              allBldPolys.push(bp);
+            }
+            if (result.bldPolys.length > 0) log('  Construcții: ' + result.bldPolys.length, 'info');
+          }
+        }).catch(function(e) { log('  -> Eroare citire: ' + e.message, 'error'); });
+      });
+    })(fi);
+  }
+
+  return chain.then(function() {
+    if (allLandPolys.length === 0) {
+      log('EROARE: Niciun poligon Land valid!', 'error');
+      setProg(false); elRun.disabled = false; return;
+    }
+    log('--- TOTAL: ' + allLandPolys.length + ' poligoane, ' + totalEnclaves + ' cu enclave, ' + totalPts + ' puncte', 'head');
+    log('Generare fișiere shapefile ...', 'info');
+
+    var shpL = buildSHP(allLandPolys);
+    var dbfL = buildDBF(allLandPolys, richDBF, 'land');
+
+    var outZip = new JSZip();
+    outZip.file('teren.shp', shpL.shpBuf);
+    outZip.file('teren.shx', shpL.shxBuf);
+    outZip.file('teren.dbf', dbfL);
+    outZip.file('teren.prj', PRJ);
+    outZip.file('teren.cpg', 'UTF-8');
+
+    if (inclBld && allBldPolys.length > 0) {
+      var shpB = buildSHP(allBldPolys);
+      var dbfB = buildDBF(allBldPolys, richDBF, 'building');
+      outZip.file('constructii.shp', shpB.shpBuf);
+      outZip.file('constructii.shx', shpB.shxBuf);
+      outZip.file('constructii.dbf', dbfB);
+      outZip.file('constructii.prj', PRJ);
+      outZip.file('constructii.cpg', 'UTF-8');
+      log('Strat constructii.shp: ' + allBldPolys.length + ' poligoane', 'ok');
+    }
+
+    return outZip.generateAsync({ type: 'blob', compression: 'DEFLATE' }).then(function(blob) {
+      outputZipBlob = blob;
+      log('ZIP generat: ' + (blob.size / 1024).toFixed(1) + ' KB', 'ok');
+      document.getElementById('statFiles').textContent    = entries.length;
+      document.getElementById('statLands').textContent    = totalLands;
+      document.getElementById('statPolys').textContent    = allLandPolys.length;
+      document.getElementById('statEnclaves').textContent = totalEnclaves;
+      document.getElementById('statPts').textContent      = totalPts;
+      elStats.style.display = 'flex';
+      elDl.style.display = 'block';
+      setProg(false); elRun.disabled = false;
+    });
+  });
+}
+
+/* ════════════════════════════════════════════════════════════
+   CGXML PARSER — CGXMLSchema_new_v3.xsd
+   ════════════════════════════════════════════════════════════ */
+function parseCGXML(xmlText, filename, swapXY, closeRing, inclBld) {
+  var parser = new DOMParser();
+  var doc    = parser.parseFromString(xmlText, 'application/xml');
+  var pe = doc.querySelector('parsererror') || doc.getElementsByTagName('parsererror')[0];
+  if (pe) throw new Error(pe.textContent.slice(0, 120));
+
+  /* ── helpers ── */
+  function childEl(el, tag) {
+    var ch = el.children || el.childNodes;
+    for (var i = 0; i < ch.length; i++) if (ch[i].tagName === tag) return ch[i];
+    return null;
+  }
+  function ct(el, tag) { var c = childEl(el, tag); return c ? (c.textContent || '').trim() : ''; }
+  function cf(el, tag) { var v = ct(el, tag); return v !== '' ? parseFloat(v) : NaN; }
+  function ci(el, tag) { var v = ct(el, tag); return v !== '' ? parseInt(v, 10) : NaN; }
+
+  /* ── FileDescription ── */
+  var fdMap = {};
+  var fdEls = doc.getElementsByTagName('FileDescription');
+  for (var i = 0; i < fdEls.length; i++) {
+    var fd = fdEls[i], fdId = ci(fd, 'FILEID');
+    if (!isNaN(fdId)) fdMap[fdId] = {
+      FILENAME:      ct(fd, 'FILENAME'),
+      EXPORTDATE:    ct(fd, 'EXPORTDATE').slice(0, 10),
+      OPERATIONTYPE: ct(fd, 'OPERATIONTYPE'),
+    };
+  }
+
+  /* ── Deed — group by FILEID, concatenate DEEDNUMBER/DEEDDATE/DEEDTYPE ── */
+  var deedsByFile = {};  /* fileid → array of deed strings */
+  var deedEls = doc.getElementsByTagName('Deed');
+  for (var i = 0; i < deedEls.length; i++) {
+    var dEl = deedEls[i];
+    var dFid = ci(dEl, 'FILEID');
+    if (isNaN(dFid)) continue;
+    var dNum  = ct(dEl, 'DEEDNUMBER');
+    var dDate = ct(dEl, 'DEEDDATE').slice(0, 10);
+    var dType = ct(dEl, 'DEEDTYPE');
+    var dStr  = [dType, dNum, dDate].filter(Boolean).join('/');
+    if (!deedsByFile[dFid]) deedsByFile[dFid] = [];
+    deedsByFile[dFid].push(dStr);
+  }
+
+  /* ── Person — group by FILEID, build "Prenume NUME (IDcode)" strings ── */
+  var personsByFile = {};  /* fileid → array of person strings */
+  var personEls = doc.getElementsByTagName('Person');
+  for (var i = 0; i < personEls.length; i++) {
+    var pEl  = personEls[i];
+    var pFid = ci(pEl, 'FILEID');
+    if (isNaN(pFid)) continue;
+    var fn  = ct(pEl, 'FIRSTNAME');
+    var ln  = ct(pEl, 'LASTNAME');
+    var idc = ct(pEl, 'IDCODE');
+    var parts = [];
+    if (fn) parts.push(fn);
+    if (ln) parts.push(ln);
+    var pStr = parts.join(' ');
+    if (idc) pStr += ' (' + idc + ')';
+    if (!personsByFile[pFid]) personsByFile[pFid] = [];
+    if (pStr.trim()) personsByFile[pFid].push(pStr);
+  }
+
+  /* ── Land ── */
+  var landMap = {};
+  var landEls = doc.getElementsByTagName('Land');
+  for (var i = 0; i < landEls.length; i++) {
+    var lEl = landEls[i], lId = ci(lEl, 'LANDID');
+    if (!isNaN(lId)) landMap[lId] = {
+      LANDID:       lId,
+      FILEID:       ci(lEl, 'FILEID'),
+      CADSECTOR:    ct(lEl, 'CADSECTOR'),
+      MEASUREDAREA: cf(lEl, 'MEASUREDAREA'),
+      PAPERCADNO:   ct(lEl, 'PAPERCADNO'),
+      E2IDENTIFIER: ct(lEl, 'E2IDENTIFIER'),
+      TOPONO:       ct(lEl, 'TOPONO'),
+      CADGENNO:     ct(lEl, 'CADGENNO'),
+      ENCLOSED:     ct(lEl, 'ENCLOSED').toLowerCase() === 'true',
+    };
+  }
+
+  /* ── Parcel — group by LANDID, collect USECATEGORY values ── */
+  var parcelsByLand = {};  /* landId → array of USECATEGORY strings */
+  var parcelEls = doc.getElementsByTagName('Parcel');
+  for (var i = 0; i < parcelEls.length; i++) {
+    var pcel = parcelEls[i], pLid = ci(pcel, 'LANDID');
+    if (isNaN(pLid)) continue;
+    var uc = ct(pcel, 'USECATEGORY');
+    if (!parcelsByLand[pLid]) parcelsByLand[pLid] = [];
+    if (uc && parcelsByLand[pLid].indexOf(uc) === -1) parcelsByLand[pLid].push(uc);
+  }
+
+  /* ── Building ── */
+  var bldMap = {};
+  if (inclBld) {
+    var bldEls = doc.getElementsByTagName('Building');
+    for (var i = 0; i < bldEls.length; i++) {
+      var bEl = bldEls[i], bId = ci(bEl, 'BUILDINGID');
+      if (!isNaN(bId)) bldMap[bId] = {
+        BUILDINGID: bId, LANDID: ci(bEl, 'LANDID'),
+        BUILDNO: ci(bEl, 'BUILDNO'), MEASUREDAREA: cf(bEl, 'MEASUREDAREA'),
+      };
+    }
+  }
+
+  /* ── Points — group by IMMOVABLEID / BUILDINGID ── */
+  var ptsByLand = {}, ptsByBld = {}, nRawPts = 0;
+  var ptEls = doc.getElementsByTagName('Points');
+  for (var i = 0; i < ptEls.length; i++) {
+    var pEl   = ptEls[i];
+    var immId = ci(pEl, 'IMMOVABLEID');
+    var bldId = ci(pEl, 'BUILDINGID');
+    var noStr = ct(pEl, 'NO');
+    var xv    = cf(pEl, 'X');
+    var yv    = cf(pEl, 'Y');
+    if (isNaN(xv) || isNaN(yv)) continue;
+    nRawPts++;
+    var no = noStr !== '' ? parseFloat(noStr) : nRawPts;
+    if (isNaN(no)) no = nRawPts;
+    var pt = { no: no, x: xv, y: yv };
+    if (!isNaN(immId)) { if (!ptsByLand[immId]) ptsByLand[immId] = []; ptsByLand[immId].push(pt); }
+    if (inclBld && !isNaN(bldId)) { if (!ptsByBld[bldId]) ptsByBld[bldId] = []; ptsByBld[bldId].push(pt); }
+  }
+
+  /* ── Shoelace formula — signed area (positive = CCW) ── */
+  function signedArea(coords) {
+    var a = 0, n = coords.length;
+    for (var i = 0, j = n - 1; i < n; j = i++) {
+      a += (coords[j][0] + coords[i][0]) * (coords[j][1] - coords[i][1]);
+    }
+    return a / 2;
+  }
+
+  /* ── Close a ring ── */
+  function closeRingArr(coords, doClose) {
+    if (!doClose || coords.length === 0) return coords;
+    var f = coords[0], l = coords[coords.length - 1];
+    if (f[0] !== l[0] || f[1] !== l[1]) coords.push([f[0], f[1]]);
+    return coords;
+  }
+
+  /* ── Build Land polygons with enclave support ── */
+  var landPolys = [], nSkipped = 0;
+
+  for (var landId in ptsByLand) {
+    if (!ptsByLand.hasOwnProperty(landId)) continue;
+    var pts  = ptsByLand[landId];
+    var lid  = parseInt(landId, 10);
+    var land = landMap[lid] || { LANDID: lid };
+    var fd2  = fdMap[land.FILEID] || {};
+
+    /* Sort ascending by NO */
+    pts.sort(function(a, b) { return a.no - b.no; });
+
+    /* Map coords */
+    var allCoords = [];
+    for (var k = 0; k < pts.length; k++) {
+      var p = pts[k];
+      allCoords.push(swapXY ? [p.y, p.x] : [p.x, p.y]);
+    }
+    if (allCoords.length < 3) { nSkipped++; continue; }
+
+    /*
+     * Enclave detection strategy:
+     * The CGXML schema uses a single flat sequence of points for a Land.
+     * When there is an enclave, the points form multiple sub-rings.
+     * We detect sub-ring boundaries by:
+     *   1. Finding repeated coordinate pairs (ring closure points)
+     *   2. Using the difference between calculated area and MEASUREDAREA
+     *      as a hint that multiple rings are needed.
+     *
+     * Algorithm: split the flat point list into rings by detecting
+     * where the sequence "resets" — a point that equals an earlier point
+     * signals a closed ring. We then classify rings as outer (CCW) or
+     * inner/hole (CW) using the signed area.
+     */
+    var rings = splitIntoRings(allCoords, closeRing);
+
+    if (rings.length === 0) { nSkipped++; continue; }
+
+    /* Check total calculated area vs MEASUREDAREA */
+    var calcArea = 0;
+    for (var r = 0; r < rings.length; r++) {
+      var sa = signedArea(rings[r]);
+      calcArea += Math.abs(sa);
+    }
+    var measArea = isNaN(land.MEASUREDAREA) ? 0 : land.MEASUREDAREA;
+    var areaDiff = measArea > 0 ? Math.abs(calcArea - measArea) / measArea * 100 : 0;
+
+    /* Prepare attributes */
+    var acte      = (deedsByFile[land.FILEID]   || []).join('; ').slice(0, 200);
+    var proprs    = (personsByFile[land.FILEID] || []).join('; ').slice(0, 200);
+    var catFolos  = (parcelsByLand[lid]         || []).join(',').slice(0, 50);
+
+    landPolys.push({
+      rings: rings,
+      /* For SHP bbox and coords we need flat coords — rings[0] is outer */
+      coords: rings[0],  /* kept for compatibility */
+      attrs: {
+        LANDID:       lid,
+        MEASRD_AREA:  measArea,
+        PAPERCADNO:   (land.PAPERCADNO   || '').slice(0, 50),
+        E2IDENTIF:    (land.E2IDENTIFIER || '').slice(0, 50),
+        CADSECTOR:    (land.CADSECTOR    || '').slice(0, 50),
+        TOPONO:       (land.TOPONO       || '').slice(0, 50),
+        FILENAME:     (fd2.FILENAME      || filename).slice(0, 50),
+        OPERTYPE:     (fd2.OPERATIONTYPE || '').slice(0, 50),
+        EXPORTDATE:   (fd2.EXPORTDATE    || '').slice(0, 12),
+        ACTE:         acte,
+        PROPRIETAR:   proprs,
+        CATFOLOS:     catFolos,
+        AREA_DIFF:    areaDiff.toFixed(2),
+      }
+    });
+  }
+
+  /* ── Build Building polygons ── */
+  var bldPolys = [];
+  if (inclBld) {
+    for (var bIdStr in ptsByBld) {
+      if (!ptsByBld.hasOwnProperty(bIdStr)) continue;
+      var bpts = ptsByBld[bIdStr], bid = parseInt(bIdStr, 10), bld = bldMap[bid] || { BUILDINGID: bid };
+      bpts.sort(function(a,b){ return a.no - b.no; });
+      var bc = [];
+      for (var k = 0; k < bpts.length; k++) { var bp = bpts[k]; bc.push(swapXY ? [bp.y,bp.x] : [bp.x,bp.y]); }
+      if (bc.length < 3) continue;
+      bc = closeRingArr(bc, closeRing);
+      bldPolys.push({
+        rings: [bc], coords: bc,
+        attrs: {
+          BUILDINGID: bid, LANDID: isNaN(bld.LANDID)?0:bld.LANDID,
+          BUILDNO: isNaN(bld.BUILDNO)?0:bld.BUILDNO,
+          MEASRD_AREA: isNaN(bld.MEASUREDAREA)?0:bld.MEASUREDAREA,
+          FILENAME: filename.slice(0,50),
+        }
+      });
+    }
+  }
+
+  return {
+    landPolys: landPolys, bldPolys: bldPolys,
+    nLands: countKeys(landMap), nRawPts: nRawPts, nSkipped: nSkipped,
+  };
+}
+
+/*
+ * splitIntoRings — splits a flat coordinate array into rings.
+ *
+ * Strategy: detect ring closures by finding a point in the sequence
+ * that matches an earlier point. This handles the most common CGXML
+ * enclave encoding where the outer ring points come first, then the
+ * hole ring points (which may start at an already-seen coordinate).
+ *
+ * Fallback: if no repeated point is found but area is ambiguous,
+ * return all points as a single ring.
+ */
+function splitIntoRings(coords, doClose) {
+  var rings = [];
+  var n = coords.length;
+
+  /* Build a quick lookup: coord key → first index seen */
+  function key(c) { return c[0].toFixed(4) + '|' + c[1].toFixed(4); }
+
+  var seen = {};
+  var ringStart = 0;
+
+  for (var i = 0; i < n; i++) {
+    var k = key(coords[i]);
+    if (i > ringStart && seen[k] !== undefined && seen[k] >= ringStart) {
+      /* Found a closing point — the ring goes from ringStart to i (inclusive) */
+      var ring = coords.slice(ringStart, i + 1);
+      if (ring.length >= 3) {
+        if (doClose) {
+          var f = ring[0], l = ring[ring.length - 1];
+          if (f[0] !== l[0] || f[1] !== l[1]) ring.push([f[0], f[1]]);
+        }
+        rings.push(ring);
+      }
+      ringStart = i + 1;
+      seen = {};
+      continue;
+    }
+    seen[k] = i;
+  }
+
+  /* Remaining points after last ring closure */
+  if (ringStart < n) {
+    var rem = coords.slice(ringStart);
+    if (rem.length >= 3) {
+      if (doClose) {
+        var rf = rem[0], rl = rem[rem.length - 1];
+        if (rf[0] !== rl[0] || rf[1] !== rl[1]) rem.push([rf[0], rf[1]]);
+      }
+      rings.push(rem);
+    }
+  }
+
+  /* If no ring boundary was found, return all as one ring */
+  if (rings.length === 0) {
+    var single = coords.slice();
+    if (doClose && single.length >= 3) {
+      var sf = single[0], sl = single[single.length - 1];
+      if (sf[0] !== sl[0] || sf[1] !== sl[1]) single.push([sf[0], sf[1]]);
+    }
+    return single.length >= 3 ? [single] : [];
+  }
+
+  /*
+   * Ensure correct winding:
+   * Outer ring (rings[0]) must be CCW (positive signed area in Cartesian).
+   * Inner rings (holes / enclaves) must be CW (negative signed area).
+   * The SHP spec requires outer ring CCW, holes CW for ESRI.
+   * Note: some GIS tools use the opposite convention — we follow ESRI.
+   */
+  function signedArea(ring) {
+    var a = 0, m = ring.length;
+    for (var ii = 0, jj = m - 1; ii < m; jj = ii++) {
+      a += (ring[jj][0] + ring[ii][0]) * (ring[jj][1] - ring[ii][1]);
+    }
+    return a / 2;
+  }
+  function reverseRing(ring) { return ring.slice().reverse(); }
+
+  /* Sort rings by absolute area descending — largest is outer */
+  rings.sort(function(a, b) { return Math.abs(signedArea(b)) - Math.abs(signedArea(a)); });
+
+  /* Outer ring should be CCW (positive area) */
+  if (signedArea(rings[0]) < 0) rings[0] = reverseRing(rings[0]);
+  /* Inner rings (holes) should be CW (negative area) */
+  for (var r = 1; r < rings.length; r++) {
+    if (signedArea(rings[r]) > 0) rings[r] = reverseRing(rings[r]);
+  }
+
+  return rings;
+}
+
+function countKeys(obj) { var n=0; for (var k in obj) if (obj.hasOwnProperty(k)) n++; return n; }
+
+/* ════════════════════════════════════════════════════════════
+   SHAPEFILE BUILDER — Esri SHP + SHX (Shape Type 5: Polygon)
+   Supports NumParts > 1 for enclaves/holes.
+   ════════════════════════════════════════════════════════════ */
+function buildSHP(polygons) {
+  /* Pre-compute content sizes for each record */
+  var cSizes = [];
+  for (var i = 0; i < polygons.length; i++) {
+    var rings = polygons[i].rings;
+    var numParts = rings.length;
+    var numPoints = 0;
+    for (var r = 0; r < rings.length; r++) numPoints += rings[r].length;
+    /* shapeType(4) + bbox(32) + numParts(4) + numPoints(4) + parts[numParts](4*numParts) + coords(numPoints*16) */
+    cSizes.push(4 + 32 + 4 + 4 + 4 * numParts + numPoints * 16);
+  }
+
+  var shpLen = 100;
+  for (var i = 0; i < cSizes.length; i++) shpLen += 8 + cSizes[i];
+  var shxLen = 100 + polygons.length * 8;
+
+  /* Global bounding box */
+  var xn=Infinity, yn=Infinity, xx=-Infinity, yx=-Infinity;
+  for (var i = 0; i < polygons.length; i++) {
+    var rings = polygons[i].rings;
+    for (var r = 0; r < rings.length; r++) {
+      var cs = rings[r];
+      for (var j = 0; j < cs.length; j++) {
+        if (cs[j][0]<xn) xn=cs[j][0]; if (cs[j][0]>xx) xx=cs[j][0];
+        if (cs[j][1]<yn) yn=cs[j][1]; if (cs[j][1]>yx) yx=cs[j][1];
+      }
+    }
+  }
+  if (!isFinite(xn)) { xn=yn=xx=yx=0; }
+
+  var shpBuf = new ArrayBuffer(shpLen);
+  var shxBuf = new ArrayBuffer(shxLen);
+  var sv = new DataView(shpBuf);
+  var xv = new DataView(shxBuf);
+
+  function writeHdr(dv, flen) {
+    dv.setInt32(0,9994,false); dv.setInt32(4,0,false); dv.setInt32(8,0,false);
+    dv.setInt32(12,0,false); dv.setInt32(16,0,false); dv.setInt32(20,0,false);
+    dv.setInt32(24,(flen/2)|0,false); dv.setInt32(28,1000,true); dv.setInt32(32,5,true);
+    dv.setFloat64(36,xn,true); dv.setFloat64(44,yn,true);
+    dv.setFloat64(52,xx,true); dv.setFloat64(60,yx,true);
+    dv.setFloat64(68,0,true); dv.setFloat64(76,0,true);
+    dv.setFloat64(84,0,true); dv.setFloat64(92,0,true);
+  }
+  writeHdr(sv, shpLen); writeHdr(xv, shxLen);
+
+  var sOff=100, xOff=100;
+  for (var i=0; i<polygons.length; i++) {
+    var rings    = polygons[i].rings;
+    var numParts = rings.length;
+    var numPts   = 0; for (var r=0; r<rings.length; r++) numPts += rings[r].length;
+    var cBytes   = cSizes[i];
+    var cWords   = (cBytes/2)|0;
+
+    /* SHX record */
+    xv.setInt32(xOff, (sOff/2)|0, false); xv.setInt32(xOff+4, cWords, false); xOff+=8;
+
+    /* SHP record header */
+    sv.setInt32(sOff, i+1, false); sv.setInt32(sOff+4, cWords, false); sOff+=8;
+
+    /* Polygon bounding box */
+    var pxn=Infinity, pyn=Infinity, pxx=-Infinity, pyx=-Infinity;
+    for (var r=0; r<rings.length; r++) {
+      for (var j=0; j<rings[r].length; j++) {
+        var cx=rings[r][j][0], cy=rings[r][j][1];
+        if(cx<pxn)pxn=cx; if(cx>pxx)pxx=cx;
+        if(cy<pyn)pyn=cy; if(cy>pyx)pyx=cy;
+      }
+    }
+
+    sv.setInt32(sOff,5,true);           sOff+=4;  /* shape type */
+    sv.setFloat64(sOff,pxn,true);       sOff+=8;
+    sv.setFloat64(sOff,pyn,true);       sOff+=8;
+    sv.setFloat64(sOff,pxx,true);       sOff+=8;
+    sv.setFloat64(sOff,pyx,true);       sOff+=8;
+    sv.setInt32(sOff,numParts,true);    sOff+=4;
+    sv.setInt32(sOff,numPts,true);      sOff+=4;
+
+    /* Parts array — offset of first point in each ring */
+    var partOffset = 0;
+    for (var r=0; r<rings.length; r++) {
+      sv.setInt32(sOff, partOffset, true); sOff+=4;
+      partOffset += rings[r].length;
+    }
+
+    /* Coordinates — all rings concatenated */
+    for (var r=0; r<rings.length; r++) {
+      for (var j=0; j<rings[r].length; j++) {
+        sv.setFloat64(sOff, rings[r][j][0], true); sOff+=8;
+        sv.setFloat64(sOff, rings[r][j][1], true); sOff+=8;
+      }
+    }
+  }
+
+  return { shpBuf: shpBuf, shxBuf: shxBuf };
+}
+
+/* ════════════════════════════════════════════════════════════
+   DBF BUILDER — dBASE III+
+   Câmpuri noi: ACTE, PROPRIETAR, CATFOLOS, AREA_DIFF
+   ════════════════════════════════════════════════════════════ */
+function buildDBF(polygons, rich, type) {
+  var fields;
+  if (type === 'land') {
+    fields = rich
+      ? [
+          { name:'ID',          type:'N', len:10, dec:0 },
+          { name:'LANDID',      type:'N', len:10, dec:0 },
+          { name:'MEASRD_AREA', type:'N', len:16, dec:3 },
+          { name:'PAPERCADNO',  type:'C', len:50, dec:0 },
+          { name:'E2IDENTIF',   type:'C', len:50, dec:0 },
+          { name:'CADSECTOR',   type:'C', len:50, dec:0 },
+          { name:'TOPONO',      type:'C', len:50, dec:0 },
+          { name:'FILENAME',    type:'C', len:50, dec:0 },
+          { name:'OPERTYPE',    type:'C', len:50, dec:0 },
+          { name:'EXPORTDATE',  type:'C', len:12, dec:0 },
+          { name:'ACTE',        type:'C', len:200, dec:0 },
+          { name:'PROPRIETAR',  type:'C', len:200, dec:0 },
+          { name:'CATFOLOS',    type:'C', len:50,  dec:0 },
+          { name:'AREA_DIFF',   type:'C', len:10,  dec:0 },
+        ]
+      : [
+          { name:'ID',          type:'N', len:10, dec:0 },
+          { name:'LANDID',      type:'N', len:10, dec:0 },
+          { name:'PAPERCADNO',  type:'C', len:50, dec:0 },
+          { name:'FILENAME',    type:'C', len:50, dec:0 },
+          { name:'ACTE',        type:'C', len:200, dec:0 },
+          { name:'PROPRIETAR',  type:'C', len:200, dec:0 },
+          { name:'CATFOLOS',    type:'C', len:50,  dec:0 },
+        ];
+  } else {
+    fields = [
+      { name:'ID',          type:'N', len:10, dec:0 },
+      { name:'BUILDINGID',  type:'N', len:10, dec:0 },
+      { name:'LANDID',      type:'N', len:10, dec:0 },
+      { name:'BUILDNO',     type:'N', len:6,  dec:0 },
+      { name:'MEASRD_AREA', type:'N', len:16, dec:3 },
+      { name:'FILENAME',    type:'C', len:50, dec:0 },
+    ];
+  }
+
+  var recLen = 1;
+  for (var i=0; i<fields.length; i++) recLen += fields[i].len;
+  var hdrSize = 32 + fields.length * 32 + 1;
+  var buf = new ArrayBuffer(hdrSize + polygons.length * recLen);
+  var dv  = new DataView(buf);
+  var u8  = new Uint8Array(buf);
+
+  var d = new Date();
+  dv.setUint8(0, 3); dv.setUint8(1, d.getFullYear()-1900);
+  dv.setUint8(2, d.getMonth()+1); dv.setUint8(3, d.getDate());
+  dv.setInt32(4, polygons.length, true);
+  dv.setInt16(8, hdrSize, true); dv.setInt16(10, recLen, true);
+
+  var fo = 32;
+  for (var i=0; i<fields.length; i++) {
+    var f = fields[i];
+    var nb = strToBytes(f.name.slice(0,11), 11);
+    for (var k=0; k<nb.length; k++) u8[fo+k] = nb[k];
+    dv.setUint8(fo+11, f.type.charCodeAt(0));
+    dv.setUint8(fo+16, f.len); dv.setUint8(fo+17, f.dec);
+    fo += 32;
+  }
+  dv.setUint8(fo, 0x0D);
+
+  var ro = hdrSize;
+  for (var i=0; i<polygons.length; i++) {
+    dv.setUint8(ro, 0x20); ro++;
+    for (var j=0; j<fields.length; j++) {
+      var f   = fields[j];
+      var raw = polygons[i].attrs[f.name];
+      if (raw === undefined || raw === null) raw = '';
+      var str;
+      if (f.type === 'N') {
+        var num = parseFloat(raw) || 0;
+        str = f.dec > 0 ? num.toFixed(f.dec) : String(Math.round(num));
+        if (str.length > f.len) str = str.slice(-f.len);
+        while (str.length < f.len) str = ' ' + str;
+      } else {
+        str = String(raw).slice(0, f.len);
+        while (str.length < f.len) str = str + ' ';
+      }
+      var bytes = strToBytes(str, f.len);
+      for (var k=0; k<bytes.length; k++) u8[ro+k] = bytes[k];
+      ro += f.len;
+    }
+  }
+  return buf;
+}
+
+/* Latin/UTF-8 safe byte encoder */
+function strToBytes(str, len) {
+  var arr = new Array(len);
+  for (var i=0; i<len; i++) arr[i] = i < str.length ? str.charCodeAt(i) & 0xFF : 0;
+  return arr;
+}
+
+/* ── Download ── */
+elDl.addEventListener('click', function() {
+  if (!outputZipBlob) return;
+  var url = (window.URL || window.webkitURL).createObjectURL(outputZipBlob);
+  if (typeof document.createElement('a').download !== 'undefined') {
+    var a = document.createElement('a');
+    a.href = url; a.download = 'cgxml_to_shp.zip';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); (window.URL||window.webkitURL).revokeObjectURL(url); }, 1000);
+  } else {
+    window.open(url, '_blank');
+  }
+});
+</script>
+</body>
+</html>

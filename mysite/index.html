@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+	<!-- SEO Meta Tags -->
+	<title>OGES - Soluții GIS Enterprise și Management Date Geospațiale | România</title>
+	<meta name="description" content="OGES oferă soluții GIS profesionale, management date geospațiale, integare ArcGIS, hartă dinamică ANCPI. Platform-independent, optimizată pentru performance și SEO.">
+	<meta name="keywords" content="GIS, geospațial, soluții GIS, date geografice, cartografie, ANCPI, România, management date, ArcGIS, hartă interactivă, OSM, topografie">
+	<meta name="author" content="Ginu Popescu">
+	<meta name="theme-color" content="#00d4ff">
+	<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+	<meta name="revisit-after" content="7 days">
+	<link rel="canonical" href="https://oges.ro/">
+
+	<!-- Open Graph & Social Media -->
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content="OGES - Open GIS Enterprise Solutions">
+	<meta property="og:title" content="OGES - Soluții GIS Enterprise și Management Date Geospațiale">
+	<meta property="og:description" content="Platform profesională pentru soluții GIS, analiză date geospațiale, integare ANCPI și ArcGIS. Optimizată pentru performanță și accesibilitate.">
+	<meta property="og:url" content="https://oges.ro/">
+	<meta property="og:image" content="https://oges.ro/assets/css/images/og-image.png">
+	<meta property="og:image:width" content="1200">
+	<meta property="og:image:height" content="630">
+
+	<!-- Twitter Card -->
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="OGES - Soluții GIS Enterprise">
+	<meta name="twitter:description" content="Soluții profesionale GIS și management date geospațiale. Integare ArcGIS, hartă dinamică, date ANCPI.">
+	<meta name="twitter:image" content="https://oges.ro/assets/css/images/og-image.png">
+
+	<!-- Icons -->
+	<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%2300d4ff'/><stop offset='100%' style='stop-color:%2300ff88'/></linearGradient></defs><circle cx='50' cy='50' r='45' fill='url(%23g)'/><path d='M50 30 L65 50 L50 70 L35 50 Z' fill='%23000' opacity='0.8'/></svg>">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+
+	<!-- Preload -->
+	<link rel="preload" href="assets/css/dark-tech.min.css" as="style">
+	<link rel="dns-prefetch" href="https://fonts.googleapis.com">
+
+	<!-- PWA Manifest -->
+	<link rel="manifest" href="manifest.json">
+
+	<!-- Fonts -->
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="preload" as="font" crossorigin>
+
+	<!-- Stylesheets -->
+	<link rel="stylesheet" href="assets/css/dark-tech.min.css?v=2.0">
+	<noscript><link rel="stylesheet" href="assets/css/noscript.css?v=2.0"></noscript>
+
+	<!-- Leaflet (interactive coordinate picker) — self-hosted (CSP script-src 'self') -->
+	<link rel="stylesheet" href="assets/css/leaflet.min.css">
+	<style>
+		/* ===== Topographic survey grid (caroiaj) — fixed background ===== */
+		.bg-grid {
+			position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+			pointer-events: none; z-index: -1;
+			background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><g fill='none' stroke='%2300d4ff'><g stroke-opacity='0.10'><path d='M40 0V200M80 0V200M120 0V200M160 0V200'/><path d='M0 40H200M0 80H200M0 120H200M0 160H200'/></g><path stroke-opacity='0.22' stroke-width='1.2' d='M0 0H200M0 0V200'/><g stroke-opacity='0.5' stroke-width='1.4'><path d='M0 0H9M0 0V9M191 0H200M200 0V9M0 200H9M0 191V200M191 200H200M200 191V200'/></g></g></svg>");
+			background-repeat: repeat;
+			background-size: 200px 200px;
+			-webkit-mask-image: radial-gradient(ellipse 100% 95% at 50% 38%, #000 70%, transparent 100%);
+			mask-image: radial-gradient(ellipse 100% 95% at 50% 38%, #000 70%, transparent 100%);
+		}
+		@media (max-width: 768px) {
+			.bg-grid { background-size: 120px 120px; }
+		}
+		@media (prefers-reduced-motion: no-preference) {
+			.bg-grid { animation: grid-drift 80s linear infinite; }
+		}
+		@keyframes grid-drift {
+			from { background-position: 0 0; }
+			to { background-position: 200px 200px; }
+		}
+
+		/* ===== Navbar links — keep all on one line, no mid-word wrap ===== */
+		.navbar .nav-links { gap: 1.5rem; flex-wrap: wrap; justify-content: flex-end; }
+		.navbar .nav-link { white-space: nowrap; }
+		@media (max-width: 1100px) {
+			.navbar .nav-links { gap: 1rem; }
+			.navbar .nav-link { font-size: 0.9rem; }
+		}
+
+		/* ===== Hamburger toggle (hidden on desktop) ===== */
+		.nav-toggle {
+			display: none; flex-direction: column; justify-content: center; gap: 5px;
+			width: 42px; height: 42px; padding: 9px;
+			background: transparent; border: 1px solid var(--border); border-radius: 8px;
+			cursor: pointer; z-index: 110;
+		}
+		.nav-toggle span {
+			display: block; width: 100%; height: 2px; border-radius: 2px;
+			background: var(--primary); transition: transform .25s ease, opacity .2s ease;
+		}
+		.nav-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+		.nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+		.nav-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+		/* ===== Collapsible mobile menu ===== */
+		@media (max-width: 960px) {
+			.navbar .container { position: relative; }
+			.nav-toggle { display: flex; }
+			.navbar .nav-links {
+				display: none; position: absolute; top: 100%; left: 0; right: 0;
+				flex-direction: column; align-items: stretch; gap: 0; flex-wrap: nowrap;
+				padding: 0.4rem 0; margin: 0;
+				background: #0f141a;
+				border-bottom: 1px solid var(--border);
+				box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+			}
+			.navbar .nav-links.open { display: flex; }
+			.navbar .nav-links li { width: 100%; }
+			.navbar .nav-link {
+				display: block; width: 100%; padding: 0.9rem 2rem; font-size: 1rem;
+			}
+			.navbar .nav-link:hover { background: rgba(0, 212, 255, 0.08); }
+		}
+
+		/* ===== Coordinate Picker Tool (dark-tech theme) ===== */
+		.coord-tool { padding: 60px 0; }
+		.coord-tool-intro {
+			max-width: 760px; margin: -10px auto 32px; text-align: center;
+			color: var(--text-secondary); font-size: 0.95rem; line-height: 1.7;
+		}
+		.picker-tool-wrapper {
+			max-width: 1100px; margin: 0 auto;
+			background: var(--bg-card); border: 1px solid var(--border);
+			border-radius: 12px; overflow: hidden;
+			box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+		}
+		.picker-tool-header {
+			display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: center;
+			justify-content: space-between; padding: 1.25rem 1.5rem;
+			border-bottom: 1px solid var(--border);
+		}
+		.picker-tool-title {
+			font-size: 1.15rem; font-weight: 600; color: var(--text-primary); margin: 0;
+		}
+		.picker-controls { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+		.picker-control-group { display: flex; gap: 0.5rem; }
+		.picker-action-btn {
+			display: inline-flex; align-items: center; gap: 0.45rem;
+			padding: 0.5rem 0.9rem; font-size: 0.8rem; font-weight: 500;
+			color: var(--text-primary); background: rgba(0, 212, 255, 0.06);
+			border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+			transition: all 0.2s ease; font-family: inherit;
+		}
+		.picker-action-btn:hover {
+			border-color: var(--primary); color: var(--primary);
+			background: rgba(0, 212, 255, 0.12);
+		}
+		.picker-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+		.picker-action-btn.is-loading svg { animation: picker-spin 0.9s linear infinite; }
+		@keyframes picker-spin { to { transform: rotate(360deg); } }
+		.picker-segmented {
+			display: inline-flex; padding: 3px; gap: 2px;
+			background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border); border-radius: 7px;
+		}
+		.picker-segmented button {
+			display: inline-flex; align-items: center; gap: 0.4rem;
+			padding: 0.45rem 0.8rem; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em;
+			color: var(--text-secondary); background: transparent; border: none;
+			border-radius: 5px; cursor: pointer; transition: all 0.2s ease; font-family: inherit;
+		}
+		.picker-segmented button:hover { color: var(--text-primary); }
+		.picker-segmented button.active {
+			color: #06121a; background: var(--primary); box-shadow: 0 2px 8px rgba(0, 212, 255, 0.3);
+		}
+		#picker-map {
+			height: 480px; width: 100%; background: #0b1016;
+		}
+		/* Tint OSM tiles to blend with the dark UI (hybrid satellite stays untouched) */
+		.picker-tool-wrapper:not(.basemap-hybrid) #picker-map .leaflet-tile-pane {
+			filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+		}
+		.picker-status {
+			padding: 0.85rem 1.5rem; background: rgba(0, 0, 0, 0.2);
+			border-top: 1px solid var(--border);
+		}
+		.picker-status-item { display: flex; align-items: center; gap: 0.75rem; }
+		.picker-status-label {
+			font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 600;
+			letter-spacing: 0.1em; color: var(--text-secondary);
+			padding: 0.2rem 0.5rem; border: 1px solid var(--border); border-radius: 4px;
+		}
+		.picker-status-value { font-size: 0.85rem; color: var(--text-primary); }
+		.picker-status-value.is-error { color: var(--accent); }
+		.picker-status-value.is-success { color: var(--secondary); }
+
+		/* Leaflet popup themed */
+		#picker-map .leaflet-popup-content-wrapper {
+			background: var(--bg-card); color: var(--text-primary);
+			border: 1px solid var(--border); border-radius: 8px;
+		}
+		#picker-map .leaflet-popup-tip { background: var(--bg-card); border: 1px solid var(--border); }
+		#picker-map .leaflet-popup-close-button { color: var(--text-secondary); padding: 6px 8px 0 0 !important; }
+		.coord-popup { font-size: 0.85rem; min-width: 200px; }
+		.coord-popup-header {
+			display: flex; align-items: center; gap: 0.5rem;
+			font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 600;
+			letter-spacing: 0.08em; color: var(--primary); margin-bottom: 0.6rem;
+		}
+		.coord-popup-row {
+			display: flex; justify-content: space-between; gap: 1rem;
+			padding: 0.35rem 0; border-bottom: 1px solid var(--border);
+		}
+		.coord-popup-row:last-of-type { border-bottom: none; }
+		.coord-popup-label { color: var(--text-secondary); font-size: 0.75rem; }
+		.coord-popup-value {
+			font-family: 'JetBrains Mono', monospace; color: var(--text-primary); font-weight: 600;
+		}
+		.coord-popup-actions { margin-top: 0.6rem; }
+		.coord-popup-btn {
+			width: 100%; padding: 0.5rem; font-size: 0.78rem; font-weight: 600;
+			color: #06121a; background: var(--primary); border: none; border-radius: 5px;
+			cursor: pointer; transition: opacity 0.2s ease; font-family: inherit;
+		}
+		.coord-popup-btn:hover { opacity: 0.88; }
+		#picker-map .leaflet-control-attribution {
+			background: rgba(15, 20, 25, 0.8); color: var(--text-secondary);
+		}
+		#picker-map .leaflet-control-attribution a { color: var(--primary); }
+		#picker-map .leaflet-control-zoom a {
+			background: var(--bg-card); color: var(--text-primary); border-color: var(--border);
+		}
+		#picker-map .leaflet-control-zoom a:hover { background: var(--primary); color: #06121a; }
+		.picker-tool-wrapper.basemap-hybrid #picker-map .leaflet-tile-pane { filter: none; }
+
+		@media (max-width: 768px) {
+			.picker-tool-header { flex-direction: column; align-items: stretch; }
+			#picker-map { height: 380px; }
+			.picker-action-btn span { display: none; }
+		}
+	</style>
+
+	<!-- Critical CSS Inline -->
+	<style>
+		:root {
+			--primary: #00d4ff;
+			--secondary: #00ff88;
+			--accent: #ff006e;
+			--bg-dark: #0f1419;
+			--bg-card: #1a1f2e;
+			--text-primary: #ffffff;
+			--text-secondary: #a0a9be;
+			--border: #2d3748;
+		}
+
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+		body { background: var(--bg-dark); color: var(--text-primary); font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6; overflow-x: hidden; }
+		body.is-preload * { animation: none !important; transition: none !important; }
+	</style>
+</head>
+<body class="is-preload">
+	<!-- Animated Background -->
+	<div class="bg-gradient"></div>
+	<div class="bg-blur"></div>
+	<div class="bg-grid" aria-hidden="true"></div>
+
+	<!-- Navigation -->
+	<nav class="navbar" role="navigation" aria-label="Main Navigation">
+		<div class="container">
+			<div class="logo">
+				<svg viewBox="0 0 40 40" width="32" height="32" aria-label="OGES Logo">
+					<title>OGES - Open GIS Enterprise Solutions</title>
+					<defs>
+						<linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+							<stop offset="0%" style="stop-color:#00d4ff"/>
+							<stop offset="100%" style="stop-color:#00ff88"/>
+						</linearGradient>
+					</defs>
+					<circle cx="20" cy="20" r="18" fill="none" stroke="url(#logoGrad)" stroke-width="1.5" opacity="0.8"/>
+					<path d="M20 8 L28 20 L20 32 L12 20 Z" fill="url(#logoGrad)" opacity="0.9"/>
+				</svg>
+				<span>OGES</span>
+			</div>
+			<ul class="nav-links" id="primary-nav" role="list">
+				<li><a href="assets/siruta.htm" class="nav-link nav-link-highlight" data-tooltip="Date Administrative SIRUTA">siruta</a></li>
+				<li><a href="https://myeterra.ancpi.ro" class="nav-link nav-link-highlight" target="_blank" rel="noopener" data-tooltip="myeterra ANCPI Platform">myeterra</a></li>
+				<li><a href="https://umap.osm.ch/en/map/dinamica-actualizare-tronsoane-limite-administrati_12718" class="nav-link nav-link-highlight" target="_blank" rel="noopener" data-tooltip="Dinamica limite OSM">dinamica limite</a></li>
+				<li><a href="#coordinate-tool" class="nav-link nav-link-highlight" data-tooltip="Coordonate Stereo 70 pe hartă">coordonate</a></li>
+				<li><a href="editor-puncte/index.html" class="nav-link nav-link-highlight" data-tooltip="Editor puncte GIS — export Shapefile">editor puncte</a></li>
+				<li><a href="cgxml2shp/index.html" class="nav-link nav-link-highlight" data-tooltip="Convertor cadastru CGXML → Shapefile">cgxml2shp</a></li>
+			</ul>
+			<button class="nav-toggle" type="button" aria-label="Meniu" aria-expanded="false" aria-controls="primary-nav">
+				<span></span><span></span><span></span>
+			</button>
+		</div>
+	</nav>
+
+	<!-- Main Content -->
+	<main id="main" role="main">
+		<div class="container">
+			<!-- Hero Section -->
+			<section class="hero">
+				<div class="hero-content">
+					<div class="badge animate-fade-in">GIS Enterprise Solutions</div>
+
+					<h1 class="hero-title animate-slide-up">
+						Open <span class="gradient-text">GIS</span> Enterprise Solutions
+					</h1>
+
+					<p class="hero-subtitle animate-slide-up" style="animation-delay: 0.2s">
+						Soluții profesionale pentru management și analiză de date geospațiale. <br>
+						<a href="https://goo.gl/maps/ayeT99HZKNYrL33h6" class="text-link" target="_blank" rel="noopener">Locatie 📍</a>
+					</p>
+
+					<div class="cta-buttons animate-slide-up" style="animation-delay: 0.4s">
+						<a href="https://ancpi.maps.arcgis.com/home/index.html" class="btn btn-primary" target="_blank" rel="noopener">
+							<span>Portal ANCPI</span>
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M5 11L11 5M11 5H6M11 5V10"/>
+							</svg>
+						</a>
+						<a href="#services" class="btn btn-secondary">
+							<span>Explorează</span>
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M8 4V12M4 8H12"/>
+							</svg>
+						</a>
+					</div>
+				</div>
+
+				<div class="hero-visual">
+					<div class="map-preview">
+						<svg viewBox="0 0 300 300" class="map-svg">
+							<defs>
+								<linearGradient id="mapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+									<stop offset="0%" style="stop-color:#00d4ff;stop-opacity:0.3"/>
+									<stop offset="100%" style="stop-color:#00ff88;stop-opacity:0.1"/>
+								</linearGradient>
+								<filter id="glow">
+									<feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+									<feMerge>
+										<feMergeNode in="coloredBlur"/>
+										<feMergeNode in="SourceGraphic"/>
+									</feMerge>
+								</filter>
+							</defs>
+
+							<!-- Map background -->
+							<rect width="300" height="300" fill="var(--bg-card)" opacity="0.5"/>
+							<path d="M50 100 Q100 50, 150 75 Q200 100, 250 50" stroke="var(--primary)" stroke-width="1.5" fill="none" opacity="0.4"/>
+							<path d="M30 150 Q90 120, 150 140 Q210 160, 270 130" stroke="var(--secondary)" stroke-width="1.5" fill="none" opacity="0.4"/>
+
+							<!-- Data points -->
+							<circle cx="80" cy="120" r="4" fill="var(--primary)" filter="url(#glow)"/>
+							<circle cx="150" cy="140" r="5" fill="var(--secondary)" filter="url(#glow)"/>
+							<circle cx="220" cy="100" r="3" fill="var(--accent)" filter="url(#glow)"/>
+							<circle cx="110" cy="200" r="4" fill="var(--primary)" filter="url(#glow)"/>
+							<circle cx="240" cy="180" r="4" fill="var(--secondary)" filter="url(#glow)"/>
+
+							<!-- Grid -->
+							<g stroke="var(--border)" stroke-width="0.5" opacity="0.2">
+								<line x1="50" y1="0" x2="50" y2="300"/>
+								<line x1="150" y1="0" x2="150" y2="300"/>
+								<line x1="250" y1="0" x2="250" y2="300"/>
+								<line x1="0" y1="100" x2="300" y2="100"/>
+								<line x1="0" y1="200" x2="300" y2="200"/>
+							</g>
+						</svg>
+					</div>
+				</div>
+			</section>
+
+			<!-- Coordinate Picker Tool -->
+			<section id="coordinate-tool" class="coord-tool">
+				<h2 class="section-title">Coordonate pe hartă</h2>
+				<p class="coord-tool-intro">Apasă oriunde pe hartă pentru a obține coordonatele punctului în sistemul național Stereo 70 (EPSG:3844). Folosește butonul de geolocație pentru poziția curentă a dispozitivului. Schimbă între harta stradală OpenStreetMap și imaginea hibridă Google (satelit + străzi).</p>
+
+				<div class="picker-tool-wrapper" id="picker-wrapper">
+					<div class="picker-tool-header">
+						<div class="picker-header-info">
+							<h3 class="picker-tool-title">Afișare coordonate X, Y Stereo 70</h3>
+						</div>
+						<div class="picker-controls">
+							<div class="picker-control-group">
+								<button class="picker-action-btn" onclick="locateMe()" id="btn-locate" title="Folosește GPS-ul / geolocația dispozitivului">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="9"/></svg>
+									<span>Locația mea</span>
+								</button>
+								<button class="picker-action-btn" onclick="clearPicker()" title="Șterge marker-ul">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+									<span>Curăță</span>
+								</button>
+							</div>
+							<div class="picker-segmented" role="tablist" aria-label="Sursă hartă">
+								<button class="active" onclick="setPickerBasemap('osm', this)" role="tab" aria-label="OpenStreetMap">
+									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>
+									OSM
+								</button>
+								<button onclick="setPickerBasemap('hybrid', this)" role="tab" aria-label="Google Hybrid (satelit + străzi)">
+									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+									Hibrid
+								</button>
+							</div>
+						</div>
+					</div>
+					<div id="picker-map" role="region" aria-label="Hartă pentru selectare coordonate Stereo 70"></div>
+					<div class="picker-status" id="picker-status">
+						<div class="picker-status-item">
+							<span class="picker-status-label">STATUS</span>
+							<span class="picker-status-value" id="picker-status-value">Apasă pe hartă pentru a obține coordonate</span>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Services Section -->
+			<section id="services" class="services">
+				<h2 class="section-title">Servicii & Integrări</h2>
+
+				<div class="services-grid">
+					<!-- Service Card 1 -->
+					<a href="assets/siruta.htm" class="service-card glass-effect">
+						<div class="card-icon">
+							<svg viewBox="0 0 24 24" width="32" height="32">
+								<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="2"/>
+								<polyline points="9 22 9 12 15 12 15 22"/>
+							</svg>
+						</div>
+						<h3>SIRUTA</h3>
+						<p>Date administrative geografice și coduri de clasificare</p>
+						<span class="card-arrow">→</span>
+					</a>
+
+					<!-- Service Card 2 -->
+					<a href="https://myeterra.ancpi.ro" target="_blank" rel="noopener" class="service-card glass-effect">
+						<div class="card-icon accent">
+							<svg viewBox="0 0 24 24" width="32" height="32">
+								<circle cx="12" cy="12" r="1"/>
+								<path d="M4 12a8 8 0 0 1 16 0 8 8 0 0 1-16 0" fill="none" stroke="currentColor" stroke-width="2"/>
+								<path d="M12 2v3m0 14v3M22 12h-3m-14 0H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+							</svg>
+						</div>
+						<h3>myeterra</h3>
+						<p>Platform ANCPI pentru management de date geografice</p>
+						<span class="card-arrow">→</span>
+					</a>
+
+					<!-- Service Card 3 -->
+					<a href="https://umap.osm.ch/en/map/dinamica-actualizare-tronsoane-limite-administrati_12718" target="_blank" rel="noopener" class="service-card glass-effect">
+						<div class="card-icon secondary">
+							<svg viewBox="0 0 24 24" width="32" height="32">
+								<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
+							</svg>
+						</div>
+						<h3>Hartă Dinamică</h3>
+						<p>Hartă interactivă cu date în timp real OpenStreetMap</p>
+						<span class="card-arrow">→</span>
+					</a>
+
+					<!-- Service Card 4 -->
+					<a href="https://ancpi.maps.arcgis.com/home/index.html" target="_blank" rel="noopener" class="service-card glass-effect">
+						<div class="card-icon primary">
+							<svg viewBox="0 0 24 24" width="32" height="32">
+								<rect x="3" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+								<rect x="14" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+								<rect x="14" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+								<rect x="3" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+							</svg>
+						</div>
+						<h3>Portal ANCPI</h3>
+						<p>Portal GIS profesional cu analize spațiale avansate</p>
+						<span class="card-arrow">→</span>
+					</a>
+
+					<!-- Service Card 5 -->
+					<a href="editor-puncte/index.html" class="service-card glass-effect">
+						<div class="card-icon secondary">
+							<svg viewBox="0 0 24 24" width="32" height="32">
+								<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="none" stroke="currentColor" stroke-width="2"/>
+								<circle cx="12" cy="9" r="2.5" fill="currentColor"/>
+							</svg>
+						</div>
+						<h3>Editor puncte GIS</h3>
+						<p>Adaugă puncte pe hartă și exportă un Shapefile (WGS84) în .zip</p>
+						<span class="card-arrow">→</span>
+					</a>
+
+					<!-- Service Card 6 -->
+					<a href="cgxml2shp/index.html" class="service-card glass-effect">
+						<div class="card-icon primary">
+							<svg viewBox="0 0 24 24" width="32" height="32">
+								<path d="M4 3h10l6 6v12a0 0 0 0 1 0 0H4a0 0 0 0 1 0 0z" fill="none" stroke="currentColor" stroke-width="2"/>
+								<path d="M14 3v6h6" fill="none" stroke="currentColor" stroke-width="2"/>
+								<path d="M8 13l3 3-3 3M16 13l-3 3 3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						</div>
+						<h3>CGXML2SHP</h3>
+						<p>Convertor cadastru CGXML → Shapefile (EPSG:3844), cu enclave și atribute</p>
+						<span class="card-arrow">→</span>
+					</a>
+				</div>
+			</section>
+
+			<!-- Features Section -->
+			<section class="features">
+				<h2 class="section-title">Caracteristici</h2>
+
+				<div class="features-grid">
+					<div class="feature-item">
+						<div class="feature-icon">⚡</div>
+						<h3>Ultra Rapid</h3>
+						<p>Optimizări extreme de performanță. Load time sub 2s.</p>
+					</div>
+					<div class="feature-item">
+						<div class="feature-icon">🔒</div>
+						<h3>Sigur</h3>
+						<p>HTTPS, security headers, protecție completă.</p>
+					</div>
+					<div class="feature-item">
+						<div class="feature-icon">📱</div>
+						<h3>Responsive</h3>
+						<p>Perfect pe mobil, tablet și desktop.</p>
+					</div>
+					<div class="feature-item">
+						<div class="feature-icon">🔍</div>
+						<h3>SEO Optimizat</h3>
+						<p>Ranked #1 pentru GIS România.</p>
+					</div>
+					<div class="feature-item">
+						<div class="feature-icon">🌐</div>
+						<h3>PWA</h3>
+						<p>Funcționează offline cu Service Worker.</p>
+					</div>
+					<div class="feature-item">
+						<div class="feature-icon">♿</div>
+						<h3>Accesibil</h3>
+						<p>WCAG 2.1 compliant, toți utilizatorii.</p>
+					</div>
+				</div>
+			</section>
+
+		</div>
+	</main>
+
+	<!-- Footer -->
+	<footer class="footer" role="contentinfo">
+		<div class="container">
+			<div class="footer-content">
+				<div class="footer-section">
+					<h4>OGES</h4>
+					<p>Open GIS Enterprise Solutions</p>
+					<div style="margin-top: 15px;">
+						<p style="font-size: 0.85em; color: #a0a9be; margin-bottom: 8px; text-align: left;">Doneaza pentru o cafea</p>
+						<img src="assets/css/images/qr.png" alt="QR Code pentru donație - Suportă dezvoltarea OGES" width="80" height="80" loading="lazy" decoding="async" style="border-radius: 4px; opacity: 0.9;">
+					</div>
+				</div>
+				<div class="footer-section">
+					<h4>Servicii</h4>
+					<ul role="list">
+						<li><a href="assets/siruta.htm">SIRUTA</a></li>
+						<li><a href="https://myeterra.ancpi.ro" target="_blank" rel="noopener">myeterra</a></li>
+						<li><a href="https://umap.osm.ch" target="_blank" rel="noopener">OSM Hartă</a></li>
+						<li><a href="https://ancpi.maps.arcgis.com" target="_blank" rel="noopener">Portal ANCPI</a></li>
+						<li><a href="#coordinate-tool">Coordonate pe hartă</a></li>
+						<li><a href="editor-puncte/index.html">Editor puncte GIS</a></li>
+						<li><a href="cgxml2shp/index.html">CGXML2SHP</a></li>
+					</ul>
+				</div>
+				<div class="footer-section">
+					<h4>Legal</h4>
+					<ul role="list">
+						<li><a href="termeni-conditii.html">Termeni și Condiții</a></li>
+						<li><a href="confidentialitate.html">Confidențialitate</a></li>
+						<li><a href="cookies.html">Cookies</a></li>
+						<li><a href="solutionarea-litigiilor.html">Solutionarea Litigiilor</a></li>
+					</ul>
+				</div>
+				<div class="footer-section">
+					<h4>Contact</h4>
+					<ul role="list">
+						<li><a href="mailto:scriemiaici@proton.me">✉️ Email</a></li>
+						<li><a href="https://goo.gl/maps/ayeT99HZKNYrL33h6" target="_blank" rel="noopener">📍 Locație</a></li>
+					</ul>
+				</div>
+			</div>
+
+			<!-- Dispute Resolution Section -->
+			<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(0, 212, 255, 0.2); text-align: center;">
+				<h4 style="color: #00d4ff; margin-bottom: 12px; font-size: 0.95em;">🏛️ Solutionarea Litigiilor</h4>
+				<div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; align-items: center;">
+					<!-- ANPC SAL Logo -->
+					<a href="https://www.anpc.ro" target="_blank" rel="noopener" style="text-decoration: none; cursor: pointer;">
+						<img src="assets/images/logo-anpc-sal.svg" alt="ANPC - SAL Logo" style="height: 40px; filter: drop-shadow(0 1px 4px rgba(0, 212, 255, 0.2)); transition: filter 0.3s ease;" onmouseover="this.style.filter='drop-shadow(0 2px 6px rgba(0, 212, 255, 0.5))'" onmouseout="this.style.filter='drop-shadow(0 1px 4px rgba(0, 212, 255, 0.2))'">
+					</a>
+
+					<!-- EU ODR Logo -->
+					<a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener" style="text-decoration: none; cursor: pointer;">
+						<img src="assets/images/logo-eu-sol.svg" alt="EU ODR Platform" style="height: 40px; filter: drop-shadow(0 1px 4px rgba(0, 255, 136, 0.2)); transition: filter 0.3s ease;" onmouseover="this.style.filter='drop-shadow(0 2px 6px rgba(0, 255, 136, 0.5))'" onmouseout="this.style.filter='drop-shadow(0 1px 4px rgba(0, 255, 136, 0.2))'">
+					</a>
+
+					<!-- Details Link -->
+					<a href="solutionarea-litigiilor.html" style="color: #00d4ff; text-decoration: none; font-size: 0.85em; padding: 5px 12px; border: 1px solid #00d4ff; border-radius: 3px; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(0, 212, 255, 0.1)'" onmouseout="this.style.background='transparent'">Detalii →</a>
+				</div>
+			</div>
+
+			<div class="footer-bottom">
+				<p>&copy; <span id="year">2026</span> OGES - All rights reserved</p>
+				<p class="footer-small">🚀 Built with optimization, security & accessibility</p>
+			</div>
+		</div>
+	</footer>
+
+	<!-- Scripts -->
+	<script>
+		// Service Worker Registration
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.register('service-worker.js').then(reg => {
+				console.log('✅ Service Worker registered');
+			}).catch(err => console.log('Service Worker:', err));
+		}
+
+		// Update year
+		document.getElementById('year').textContent = new Date().getFullYear();
+
+		// Remove preload class
+		window.addEventListener('load', () => {
+			document.body.classList.remove('is-preload');
+		});
+
+		// Smooth scroll for hash links
+		document.querySelectorAll('a[href^="#"]').forEach(link => {
+			link.addEventListener('click', (e) => {
+				const target = document.querySelector(link.getAttribute('href'));
+				if (target) {
+					e.preventDefault();
+					target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			});
+		});
+
+		// Navbar scroll effect
+		let lastScrollTop = 0;
+		const navbar = document.querySelector('.navbar');
+		window.addEventListener('scroll', () => {
+			const scrollTop = window.pageYOffset;
+			if (scrollTop > 50) {
+				navbar.classList.add('scrolled');
+			} else {
+				navbar.classList.remove('scrolled');
+			}
+			lastScrollTop = scrollTop;
+		}, false);
+
+		// Prevent mobile touch scroll on body
+		document.addEventListener('touchmove', (e) => {
+			if (e.touches.length > 1) {
+				e.preventDefault();
+			}
+		}, { passive: false });
+
+		// Collapsible mobile menu
+		(function () {
+			const btn = document.querySelector('.nav-toggle');
+			const nav = document.getElementById('primary-nav');
+			if (!btn || !nav) return;
+			const setOpen = (open) => {
+				nav.classList.toggle('open', open);
+				btn.setAttribute('aria-expanded', String(open));
+			};
+			btn.addEventListener('click', () => setOpen(!nav.classList.contains('open')));
+			nav.addEventListener('click', (e) => { if (e.target.closest('a')) setOpen(false); });
+			document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+			window.addEventListener('resize', () => { if (window.innerWidth > 960) setOpen(false); });
+		})();
+	</script>
+
+	<!-- Coordinate Picker: Leaflet + proj4 + logic — self-hosted (CSP script-src 'self') -->
+	<script src="assets/js/leaflet.min.js"></script>
+	<script src="assets/js/proj4.min.js"></script>
+	<script>
+	(function () {
+		if (typeof L === 'undefined' || typeof proj4 === 'undefined') return;
+		if (!document.getElementById('picker-map')) return;
+
+		// Define Stereo 70 (EPSG:3844) projection
+		proj4.defs("EPSG:3844", "+proj=sterea +lat_0=46 +lon_0=25 +k=0.99975 +x_0=500000 +y_0=500000 +ellps=krass +towgs84=2.329,-147.042,-92.08,-0.309,0.325,-0.497,5.69 +units=m +no_defs");
+
+		// Romania territorial bounds — used by maxBounds and as a quick reject box.
+		const ROMANIA_BOUNDS_SW = [43.50, 19.95];
+		const ROMANIA_BOUNDS_NE = [48.30, 29.85];
+
+		// Simplified Romania border polygon (lon, lat pairs) for an in-territory check.
+		const ROMANIA_POLYGON = [
+			[22.71, 47.88], [23.14, 48.07], [23.76, 47.99], [24.40, 47.95],
+			[25.21, 47.91], [26.62, 48.22], [26.93, 48.12], [27.20, 47.83],
+			[27.55, 47.40], [28.10, 46.78], [28.16, 46.37], [28.26, 45.95],
+			[28.78, 45.30], [29.69, 45.15], [29.62, 44.84], [28.84, 44.91],
+			[28.55, 43.74], [27.97, 43.81], [27.24, 44.18], [26.06, 43.95],
+			[24.10, 43.62], [23.20, 43.78], [22.92, 43.92], [22.91, 44.07],
+			[22.65, 44.20], [22.50, 44.40], [22.36, 44.48], [22.65, 44.60],
+			[22.47, 44.71], [22.70, 44.92], [21.55, 44.85], [21.40, 45.15],
+			[21.30, 45.55], [20.75, 45.75], [20.45, 46.00], [20.10, 46.13],
+			[20.27, 46.30], [20.42, 46.45], [21.04, 46.78], [21.53, 47.06],
+			[22.13, 47.59], [22.71, 47.88]
+		];
+
+		function isPointInRomania(lat, lng) {
+			if (lat < ROMANIA_BOUNDS_SW[0] || lat > ROMANIA_BOUNDS_NE[0] ||
+				lng < ROMANIA_BOUNDS_SW[1] || lng > ROMANIA_BOUNDS_NE[1]) {
+				return false;
+			}
+			let inside = false;
+			const poly = ROMANIA_POLYGON;
+			for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+				const [xi, yi] = poly[i];
+				const [xj, yj] = poly[j];
+				if (((yi > lat) !== (yj > lat)) &&
+					(lng < ((xj - xi) * (lat - yi)) / (yj - yi + 1e-12) + xi)) {
+					inside = !inside;
+				}
+			}
+			return inside;
+		}
+
+		const pickerMap = L.map('picker-map', {
+			center: [45.9432, 24.9668],   // centrul aproximativ al României
+			zoom: 7,
+			scrollWheelZoom: true,
+			zoomControl: true,
+			attributionControl: true,
+			maxBounds: L.latLngBounds(
+				L.latLng(ROMANIA_BOUNDS_SW[0] - 0.3, ROMANIA_BOUNDS_SW[1] - 0.5),
+				L.latLng(ROMANIA_BOUNDS_NE[0] + 0.3, ROMANIA_BOUNDS_NE[1] + 0.5)
+			),
+			maxBoundsViscosity: 0.85,
+			minZoom: 6
+		});
+
+		const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+			maxZoom: 19
+		});
+		const googleHybridLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+			attribution: '© <a href="https://www.google.com/intl/ro_ro/help/terms_maps/">Google Maps</a>',
+			subdomains: ['0', '1', '2', '3'],
+			maxZoom: 20
+		});
+		osmLayer.addTo(pickerMap);
+		let currentBasemap = 'osm';
+
+		function makePickerIcon(color) {
+			return L.divIcon({
+				className: 'picker-pin',
+				html: `
+					<div style="position:relative; width:32px; height:42px; transform:translateY(-12px);">
+						<svg width="32" height="42" viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg">
+							<path d="M16 1 C 8 1 2 7 2 15 C 2 26 16 41 16 41 C 16 41 30 26 30 15 C 30 7 24 1 16 1 Z"
+								fill="${color}" stroke="#0f1419" stroke-width="2"/>
+							<circle cx="16" cy="15" r="5" fill="#0f1419"/>
+						</svg>
+					</div>
+				`,
+				iconSize: [32, 42],
+				iconAnchor: [16, 30],
+				popupAnchor: [0, -28]
+			});
+		}
+		const pinClick = makePickerIcon('#00d4ff');   // primary — click manual
+		const pinGps = makePickerIcon('#00ff88');      // secondary — geolocație
+		let pickerMarker = null;
+
+		function formatNumber(n, decimals) { return n.toFixed(decimals); }
+
+		function buildPopupHTML(lat, lng, x, y, source) {
+			const sourceLabel = source === 'gps' ? 'POZIȚIE GPS · STEREO 70' : 'PUNCT SELECTAT · STEREO 70';
+			const dot = source === 'gps' ? '#00ff88' : '#00d4ff';
+			return `
+				<div class="coord-popup">
+					<div class="coord-popup-header">
+						<span style="display:inline-block; width:8px; height:8px; background:${dot}; border-radius:50%;"></span>
+						${sourceLabel}
+					</div>
+					<div class="coord-popup-row">
+						<span class="coord-popup-label">X (Nord)</span>
+						<span class="coord-popup-value">${formatNumber(x, 2)} m</span>
+					</div>
+					<div class="coord-popup-row">
+						<span class="coord-popup-label">Y (Est)</span>
+						<span class="coord-popup-value">${formatNumber(y, 2)} m</span>
+					</div>
+					<div class="coord-popup-row">
+						<span class="coord-popup-label">Lat / Lon</span>
+						<span class="coord-popup-value" style="font-size:0.72rem;">${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+					</div>
+					<div class="coord-popup-row">
+						<span class="coord-popup-label">EPSG</span>
+						<span class="coord-popup-value">3844</span>
+					</div>
+					<div class="coord-popup-actions">
+						<button class="coord-popup-btn" onclick="copyCoord('${formatNumber(x, 2)}, ${formatNumber(y, 2)}', this)">Copiază X, Y</button>
+					</div>
+				</div>
+			`;
+		}
+
+		function setPickerStatus(text, type) {
+			const el = document.getElementById('picker-status-value');
+			el.classList.remove('is-error', 'is-success');
+			if (type) el.classList.add('is-' + type);
+			el.textContent = text;
+		}
+
+		function placePoint(lat, lng, source) {
+			if (!isPointInRomania(lat, lng)) {
+				setPickerStatus('Punct în afara teritoriului României. Stereo 70 este proiecția națională și este definită doar pentru RO.', 'error');
+				return;
+			}
+			let xy;
+			try {
+				const [easting, northing] = proj4("EPSG:4326", "EPSG:3844", [lng, lat]);
+				xy = { x: northing, y: easting };
+			} catch (e) {
+				setPickerStatus('Eroare la calculul proiecției: ' + e.message, 'error');
+				return;
+			}
+			if (pickerMarker) pickerMap.removeLayer(pickerMarker);
+			pickerMarker = L.marker([lat, lng], { icon: source === 'gps' ? pinGps : pinClick }).addTo(pickerMap);
+			pickerMarker.bindPopup(buildPopupHTML(lat, lng, xy.x, xy.y, source), {
+				maxWidth: 260, closeButton: true, autoPanPadding: [40, 40]
+			}).openPopup();
+			setPickerStatus(`${source === 'gps' ? 'GPS' : 'Click'} · X=${formatNumber(xy.x, 2)} m, Y=${formatNumber(xy.y, 2)} m (Stereo 70)`, 'success');
+		}
+
+		pickerMap.on('click', function (e) { placePoint(e.latlng.lat, e.latlng.lng, 'click'); });
+
+		function locateMe() {
+			const btn = document.getElementById('btn-locate');
+			if (!('geolocation' in navigator)) {
+				setPickerStatus('Geolocația nu este disponibilă în acest browser', 'error');
+				return;
+			}
+			setPickerStatus('Se obține locația dispozitivului…');
+			btn.classList.add('is-loading');
+			btn.disabled = true;
+			navigator.geolocation.getCurrentPosition(
+				function (pos) {
+					btn.classList.remove('is-loading');
+					btn.disabled = false;
+					const { latitude, longitude, accuracy } = pos.coords;
+					if (!isPointInRomania(latitude, longitude)) {
+						setPickerStatus('Locația dispozitivului este în afara teritoriului României. Acest instrument afișează coordonate Stereo 70 doar pentru RO.', 'error');
+						pickerMap.setView([45.9432, 24.9668], 7);
+						return;
+					}
+					pickerMap.setView([latitude, longitude], 17);
+					placePoint(latitude, longitude, 'gps');
+					setPickerStatus(`GPS · precizie ±${Math.round(accuracy)} m · X, Y în Stereo 70 afișate pe hartă`, 'success');
+				},
+				function (err) {
+					btn.classList.remove('is-loading');
+					btn.disabled = false;
+					const messages = { 1: 'Permisiune refuzată pentru localizare', 2: 'Poziția dispozitivului nu poate fi determinată', 3: 'Timeout la obținerea poziției' };
+					setPickerStatus(messages[err.code] || 'Eroare la geolocație: ' + err.message, 'error');
+				},
+				{ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+			);
+		}
+		window.locateMe = locateMe;
+
+		function clearPicker() {
+			if (pickerMarker) { pickerMap.removeLayer(pickerMarker); pickerMarker = null; }
+			setPickerStatus('Apasă pe hartă pentru a obține coordonate');
+		}
+		window.clearPicker = clearPicker;
+
+		function setPickerBasemap(basemap, btn) {
+			if (currentBasemap === basemap) return;
+			btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+			btn.classList.add('active');
+			const wrapper = document.getElementById('picker-wrapper');
+			if (basemap === 'hybrid') {
+				pickerMap.removeLayer(osmLayer);
+				googleHybridLayer.addTo(pickerMap);
+				wrapper.classList.add('basemap-hybrid');
+			} else {
+				pickerMap.removeLayer(googleHybridLayer);
+				osmLayer.addTo(pickerMap);
+				wrapper.classList.remove('basemap-hybrid');
+			}
+			currentBasemap = basemap;
+		}
+		window.setPickerBasemap = setPickerBasemap;
+
+		function copyCoord(text, btn) {
+			const ok = function () {
+				const original = btn.textContent;
+				btn.textContent = '✓ Copiat';
+				setTimeout(function () { btn.textContent = original; }, 1500);
+			};
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(text).then(ok).catch(function () {
+					btn.textContent = 'Eroare';
+					setTimeout(function () { btn.textContent = 'Copiază X, Y'; }, 1500);
+				});
+			} else {
+				const ta = document.createElement('textarea');
+				ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+				document.body.appendChild(ta); ta.select();
+				try { document.execCommand('copy'); ok(); } catch (e) { btn.textContent = 'Eroare'; }
+				document.body.removeChild(ta);
+			}
+		}
+		window.copyCoord = copyCoord;
+
+		// Re-render map when section scrolls into view (Leaflet needs invalidateSize)
+		const pickerObserver = new IntersectionObserver(function (entries) {
+			entries.forEach(function (entry) {
+				if (entry.isIntersecting) {
+					setTimeout(function () { pickerMap.invalidateSize(); }, 200);
+					pickerObserver.unobserve(entry.target);
+				}
+			});
+		}, { threshold: 0.1 });
+		pickerObserver.observe(document.getElementById('picker-map'));
+	})();
+	</script>
+
+	<!-- Structured Data - Organization -->
+	<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "Organization",
+		"name": "OGES - Open GIS Enterprise Solutions",
+		"description": "Soluții profesionale GIS, management date geospațiale, integare ArcGIS și ANCPI",
+		"url": "https://oges.ro",
+		"logo": "https://oges.ro/logo.svg",
+		"sameAs": [
+			"https://www.facebook.com/oges",
+			"https://www.linkedin.com/company/oges"
+		],
+		"contactPoint": {
+			"@type": "ContactPoint",
+			"email": "scriemiaici@proton.me",
+			"contactType": "Customer Support",
+			"areaServed": "RO",
+			"availableLanguage": "ro"
+		},
+		"areaServed": {
+			"@type": "Country",
+			"name": "Romania"
+		},
+		"serviceType": "GIS Solutions, Data Management, Geospatial Analysis"
+	}
+	</script>
+
+	<!-- Structured Data - Website Search -->
+	<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "WebSite",
+		"url": "https://oges.ro",
+		"name": "OGES - Open GIS Enterprise Solutions",
+		"description": "Soluții GIS profesionale și management date geospațiale",
+		"potentialAction": {
+			"@type": "SearchAction",
+			"target": {
+				"@type": "EntryPoint",
+				"urlTemplate": "https://oges.ro?s={search_term_string}"
+			},
+			"query-input": "required name=search_term_string"
+		}
+	}
+	</script>
+
+	<!-- Structured Data - Local Business -->
+	<script type="application/ld+json">
+	{
+		"@context": "https://schema.org",
+		"@type": "LocalBusiness",
+		"name": "OGES - Open GIS Enterprise Solutions",
+		"description": "Soluții GIS profesionale și management date geospațiale",
+		"url": "https://oges.ro",
+		"telephone": "+40700000000",
+		"email": "scriemiaici@proton.me",
+		"areaServed": "Romania",
+		"priceRange": "$$",
+		"sameAs": [
+			"https://maps.google.com/?q=OGES"
+		]
+	}
+	</script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+/* ===== Teme (white / dark) ===== */
+:root,
+body.theme-white {
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #fafafa;
+  --border: #e2e2e2;
+  --text: #1f2933;
+  --muted: #6b7280;
+  --primary: #1565c0;
+  --primary-hover: #0d47a1;
+  --accent: #2e7d32;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  --mono: "Consolas", "SFMono-Regular", "Menlo", monospace;
+  --sans: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+}
+
+body.theme-dark {
+  --bg: #1b1f24;
+  --panel: #22272e;
+  --panel-2: #2b313a;
+  --border: #3a414b;
+  --text: #e6e9ee;
+  --muted: #9aa4b2;
+  --primary: #4a90d9;
+  --primary-hover: #357abd;
+  --accent: #66bb6a;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  transition: background .2s, color .2s;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* ===== Consola (1/3) ===== */
+#console-pane {
+  flex: 0 0 25%;
+  max-width: 25%;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.console-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.console-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.theme-toggle {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.theme-toggle:hover { border-color: var(--primary); }
+
+.back-home {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--primary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.back-home:hover { border-color: var(--primary); background: var(--primary); color: #fff; }
+
+.badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badge-loading { background: #fff4e0; color: #9a6700; }
+.badge-ready   { background: #e6f4ea; color: #1b5e20; }
+.badge-error   { background: #fdecea; color: #b71c1c; }
+
+.console-info {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.hint { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+.counter { font-size: 14px; }
+.counter strong { font-size: 16px; color: var(--primary); }
+
+.console-log {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 10px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.log-entry {
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border-left: 3px solid var(--border);
+  background: var(--panel-2);
+  border-radius: 4px;
+}
+.log-entry.point { border-left-color: var(--primary); }
+.log-entry.ok    { border-left-color: var(--accent); }
+.log-entry.err   { border-left-color: #c62828; color: #b71c1c; }
+.log-entry .ts { color: var(--muted); }
+
+.console-footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.btn {
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background .15s, opacity .15s;
+}
+.btn-primary {
+  width: 100%;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+.btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+.btn-primary:disabled { background: #cfd8dc; cursor: not-allowed; }
+.btn-ghost {
+  background: var(--panel);
+  border-color: var(--border);
+  color: var(--text);
+}
+.btn-ghost:hover { background: var(--panel-2); }
+
+/* ===== Harta (2/3) ===== */
+#map-pane {
+  flex: 1 1 75%;
+  position: relative;
+}
+#map { position: absolute; inset: 0; }
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.modal-overlay.hidden { display: none; }
+
+.modal {
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 22px 24px;
+}
+.modal h2 { margin: 0 0 4px; font-size: 18px; }
+.modal .coords {
+  margin: 0 0 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+#attr-form label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  position: relative;
+}
+#attr-form input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  font: inherit;
+  font-weight: 400;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+#attr-form input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(21, 101, 192, .15);
+}
+#attr-form fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px 4px;
+  margin: 0 0 14px;
+}
+#attr-form legend { padding: 0 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
+
+.count {
+  position: absolute;
+  right: 2px;
+  top: 0;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+.modal-actions .btn { width: auto; }
+
+/* Punct temporar evidențiat */
+.leaflet-marker-icon.pending { filter: hue-rotate(120deg); }
