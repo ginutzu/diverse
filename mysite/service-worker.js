@@ -1,69 +1,75 @@
-const CACHE_NAME = 'oges-v6';
-const urlsToCache = [
-	'/',
-	'/index.html',
-	'/assets/css/main.min.css',
-	'/assets/css/fontawesome-all.min.css',
-	'/assets/webfonts/fa-solid-900.woff2',
-	'/assets/webfonts/fa-brands-400.woff2',
-	'/assets/css/images/bg.jpg',
-	'/assets/css/images/overlay.svg',
-	'/assets/css/images/qr.png',
-	'/manifest.json'
+/* OGES service worker — PWA / offline
+ * Scope-relative paths so it works both at the domain root (NAS)
+ * and under a subpath like /diverse/ (GitHub Pages).
+ */
+const CACHE_NAME = 'oges-v7';
+
+// Pre-cached app shell. Relative URLs resolve against the SW location (its scope),
+// so they are correct whether the site is served from "/" or from "/diverse/".
+const PRECACHE = [
+	'./',
+	'./index.html',
+	'./manifest.json',
+	'./assets/css/dark-tech.min.css',
+	'./assets/css/leaflet.min.css',
+	'./assets/js/leaflet.min.js',
+	'./assets/js/proj4.min.js',
+	'./assets/css/images/bg.jpg',
+	'./assets/css/images/qr.png'
 ];
 
-// Install event - cache resources
-self.addEventListener('install', event => {
+// Install — pre-cache the shell. Individual failures don't abort the install.
+self.addEventListener('install', (event) => {
 	event.waitUntil(
 		caches.open(CACHE_NAME)
-			.then(cache => cache.addAll(urlsToCache))
+			.then((cache) => Promise.all(
+				PRECACHE.map((url) => cache.add(url).catch(() => null))
+			))
 			.then(() => self.skipWaiting())
 	);
 });
 
-// Activate event - clean up old caches
-self.addEventListener('activate', event => {
+// Activate — drop old caches.
+self.addEventListener('activate', (event) => {
 	event.waitUntil(
-		caches.keys().then(cacheNames => {
-			return Promise.all(
-				cacheNames.map(cacheName => {
-					if (cacheName !== CACHE_NAME) {
-						return caches.delete(cacheName);
-					}
-				})
-			);
-		}).then(() => self.clients.claim())
+		caches.keys()
+			.then((keys) => Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : null))))
+			.then(() => self.clients.claim())
 	);
 });
 
-// Fetch event - serve from cache, fallback to network
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', (event) => {
+	const req = event.request;
+	if (req.method !== 'GET') return;
+
+	// Page navigations: network-first (always fresh when online),
+	// fall back to the cached page when offline.
+	if (req.mode === 'navigate') {
+		event.respondWith(
+			fetch(req)
+				.then((res) => {
+					const copy = res.clone();
+					caches.open(CACHE_NAME).then((c) => c.put(req, copy));
+					return res;
+				})
+				.catch(() => caches.match(req, { ignoreSearch: true })
+					.then((r) => r || caches.match('./index.html')))
+		);
+		return;
+	}
+
+	// Other GET requests: cache-first, then network (cache same-origin successes).
+	// ignoreSearch lets cached files match requests that carry a ?v= query.
 	event.respondWith(
-		caches.match(event.request)
-			.then(response => {
-				if (response) {
-					return response;
+		caches.match(req, { ignoreSearch: true }).then((cached) => {
+			if (cached) return cached;
+			return fetch(req).then((res) => {
+				if (res && res.status === 200 && res.type === 'basic') {
+					const copy = res.clone();
+					caches.open(CACHE_NAME).then((c) => c.put(req, copy));
 				}
-
-				return fetch(event.request).then(response => {
-					// Don't cache non-successful responses
-					if (!response || response.status !== 200 || response.type !== 'basic') {
-						return response;
-					}
-
-					// Clone the response
-					const responseToCache = response.clone();
-					caches.open(CACHE_NAME)
-						.then(cache => {
-							cache.put(event.request, responseToCache);
-						});
-
-					return response;
-				});
-			})
-			.catch(() => {
-				// Return offline page or cached response
-				return caches.match('/index.html');
-			})
+				return res;
+			}).catch(() => cached);
+		})
 	);
 });
