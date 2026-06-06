@@ -1,0 +1,21 @@
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Logs & temp
+*.log
+*.tmp
+*.bak
+
+# Dependencies / build
+node_modules/
+
+# Local helper folder used for pushing
+_diverse_push/
