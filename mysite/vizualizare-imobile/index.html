@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="description" content="Vizualizare Imobile — hartă cadastrală ANCPI în Stereo70 (EPSG:3844): imobile, clădiri, căutare, identificare, GPS și export." />
+<meta name="theme-color" content="#0b1220" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Vizualizare Imobile" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<title>Vizualizare Imobile</title>
+<link rel="stylesheet" href="lib/leaflet.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#0b1220;--panel:#0e1726ee;--panel-solid:#0e1726;--line:#21314a;--text:#dbe6f5;--muted:#8aa0bd;
+    --parcel:#19e6ff;--building:#f6a821;--accent:#19e6ff;--focus:#7cf3ff;--ok:#3ddc97;--warn:#f6a821;--bad:#ff6b6b;
+    --gps:#ff5da2;--hl:#ffd400;--shadow:0 10px 40px -12px #000a,0 2px 8px -2px #0008;}
+  *{box-sizing:border-box}html,body{height:100%;margin:0}
+  body{font-family:"Space Grotesk",system-ui,sans-serif;background:var(--ink);color:var(--text);overflow:hidden;-webkit-font-smoothing:antialiased}
+  #map{position:absolute;inset:0;background:#070c14}.leaflet-container{background:#070c14;font-family:inherit}
+  .panel{position:absolute;top:14px;left:14px;z-index:1000;width:328px;max-width:calc(100vw - 28px);background:var(--panel);
+    backdrop-filter:blur(14px) saturate(1.2);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  .panel header{padding:14px 16px 12px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 4px;font-weight:500}
+  .panel h1{font-size:16px;line-height:1.15;margin:0;font-weight:600;letter-spacing:-.01em}
+  .panel h1 small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;margin-top:3px;font-family:"IBM Plex Mono",monospace;letter-spacing:0}
+  .body{padding:12px 16px 14px;max-height:calc(100vh - 150px);overflow:auto}
+  .group{margin:0 0 14px}.group:last-child{margin-bottom:0}
+  .group>.lbl{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 8px;font-family:"IBM Plex Mono",monospace}
+  .toggle{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;color:var(--text);padding:7px 8px;border-radius:9px;cursor:pointer;text-align:left;font:inherit;font-size:13.5px}
+  .toggle:hover{background:#ffffff0c}.toggle .sw{width:16px;height:16px;border-radius:4px;flex:0 0 auto;border:1.5px solid #fff3}
+  .toggle .nm{flex:1}.toggle .ck{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted)}
+  .toggle[aria-pressed="false"]{opacity:.42}.sw.parcel{background:#19e6ff22;border-color:var(--parcel)}.sw.building{background:#f6a82188;border-color:var(--building)}
+  select.bm,input.txt{width:100%;font:inherit;font-size:13px;color:var(--text);background:#0a1220;border:1px solid var(--line);border-radius:9px;padding:9px 10px}
+  select.bm{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238aa0bd' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 9px center;background-size:16px}
+  select.bm optgroup{color:var(--muted)}select.bm option{color:var(--text);background:#0e1726}
+  input.txt::placeholder{color:#62748f}
+  .row{display:flex;gap:6px;margin-top:6px}.row .txt{flex:1}
+  .btn{font:inherit;font-size:12.5px;color:var(--text);background:#ffffff0a;border:1px solid var(--line);border-radius:9px;padding:9px 10px;cursor:pointer;transition:.12s;white-space:nowrap}
+  .btn:hover{background:#ffffff16}.btn.prim{background:var(--accent);color:#04111a;border-color:var(--accent);font-weight:600}
+  .btn.act{background:var(--hl);color:#2a2300;border-color:var(--hl);font-weight:600}
+  .btn:disabled{opacity:.5;cursor:default}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+  .status{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:11px;font-family:"IBM Plex Mono",monospace;color:var(--muted);min-height:14px}
+  .status .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+  .status.loading .dot{background:var(--warn);animation:pulse 1s infinite}.status.ok .dot{background:var(--ok)}.status.fail .dot{background:var(--bad)}
+  @keyframes pulse{50%{opacity:.3}}
+  .slider{display:flex;align-items:center;gap:10px;margin-top:8px}.slider input{flex:1;accent-color:var(--accent)}
+  .slider .val{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);width:34px;text-align:right}.slider .lab{font-size:11px;color:var(--muted);font-family:"IBM Plex Mono",monospace}
+  .readout{font-family:"IBM Plex Mono",monospace;font-size:12px;background:#060b14;border:1px solid var(--line);border-radius:10px;padding:10px 11px;display:grid;grid-template-columns:auto 1fr;gap:3px 12px;line-height:1.5}
+  .readout .k{color:var(--muted)}.readout .v{text-align:right;color:#eaf3ff;font-weight:500;font-variant-numeric:tabular-nums;word-break:break-word}
+  .readout .hd{grid-column:1/-1;color:var(--accent);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;margin:2px 0 1px;font-weight:600}
+  .readout .hd:first-child{margin-top:0}.readout .hd.gps{color:var(--gps)}.readout .hd.hl{color:var(--hl)}
+  .gps-btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;margin-top:2px;background:linear-gradient(180deg,#ff5da21a,#ff5da20d);border:1px solid #ff5da244;color:#ffd6e8;padding:10px;border-radius:10px;cursor:pointer;font:inherit;font-size:13px;font-weight:600;transition:.14s}
+  .gps-btn:hover{background:#ff5da226;border-color:#ff5da288}.gps-btn svg{width:16px;height:16px}
+  .msg{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.4}.msg.err{color:var(--bad)}.msg.ok{color:var(--ok)}
+  .note{font-size:11px;color:var(--muted);line-height:1.45;margin:12px 0 0;border-top:1px solid var(--line);padding-top:10px}
+  .note a{color:var(--accent);text-decoration:none}.note a:hover{text-decoration:underline}.note code{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:#bcd}
+  .legend{position:absolute;left:14px;bottom:14px;z-index:900;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:11.5px;display:flex;gap:14px;align-items:center;box-shadow:var(--shadow);backdrop-filter:blur(12px)}
+  .legend span{display:flex;align-items:center;gap:7px}.legend i{width:13px;height:13px;border-radius:3px;display:inline-block}
+  .legend i.p{background:#19e6ff20;border:1.5px solid var(--parcel)}.legend i.b{background:#f6a82188;border:1.5px solid var(--building)}
+  .collapse{position:absolute;top:10px;right:10px;z-index:1001;width:34px;height:34px;border-radius:9px;background:var(--panel);border:1px solid var(--line);color:var(--text);cursor:pointer;display:none;align-items:center;justify-content:center;font-size:18px;box-shadow:var(--shadow)}
+  .leaflet-bar.locate a{font-size:0;position:relative}
+  .leaflet-bar.locate a::before{content:"";position:absolute;inset:0;background:no-repeat center/18px 18px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dbe6f5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3'/><path d='M12 2v3M12 19v3M2 12h3M19 12h3'/></svg>")}
+  .leaflet-bar.locate.active a::before{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff5da2' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3'/><path d='M12 2v3M12 19v3M2 12h3M19 12h3'/></svg>")}
+  .leaflet-popup-content-wrapper{background:var(--panel-solid);color:var(--text);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+  .leaflet-popup-tip{background:var(--panel-solid);border:1px solid var(--line)}.leaflet-popup-content{margin:11px 13px;font-size:12.5px;max-height:260px;overflow:auto}
+  .pop-h{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+  .pop-t{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-family:"IBM Plex Mono",monospace;font-size:11px}.pop-t .k{color:var(--muted)}.pop-t .v{text-align:right;color:#eaf3ff;word-break:break-word}
+  .pop-t .v.idline{grid-column:1/-1;text-align:left;white-space:nowrap;word-break:normal;color:var(--hl);font-weight:600;margin-bottom:3px}
+  .pop-t .k.idkey{grid-column:1/-1;color:var(--accent)}
+  .leaflet-bar a{background:var(--panel-solid);color:var(--text);border-bottom-color:var(--line)}.leaflet-bar a:hover{background:#16263c}
+  .leaflet-control-attribution{background:#0e1726cc!important;color:var(--muted)!important;font-size:10px}.leaflet-control-attribution a{color:var(--accent)!important}
+  .leaflet-control-scale-line{background:#0e1726cc;color:var(--text);border-color:var(--line)}
+  .scale-ratio{background:#0e1726cc;border:1px solid var(--line);color:var(--text);padding:3px 9px;border-radius:7px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-variant-numeric:tabular-nums;box-shadow:var(--shadow);backdrop-filter:blur(8px)}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  .scale-ratio{margin-bottom:env(safe-area-inset-bottom,0)}
+  @media (max-width:600px){
+    .panel{top:max(10px,env(safe-area-inset-top,0));left:8px;right:8px;width:auto;max-width:none;border-radius:12px}
+    .panel .body{max-height:46vh}
+    .panel.min .body,.panel.min header .eyebrow,.panel.min header h1 small{display:none}
+    .collapse{display:flex;top:max(8px,env(safe-area-inset-top,0))}
+    .legend{display:none}
+    .btn,.gps-btn,.toggle,select.bm,input.txt{min-height:42px}
+    .seg button{min-height:40px}
+    .leaflet-control-zoom{margin-bottom:14px!important}
+    .scale-ratio{font-size:12px;padding:5px 10px}
+  }
+  @media (max-width:600px) and (orientation:landscape){.panel .body{max-height:70vh}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="map" role="application" aria-label="Hartă cadastrală ANCPI"></div>
+<button class="collapse" id="collapse" aria-label="Restrânge panoul">‹</button>
+
+<section class="panel" id="panel">
+  <header><p class="eyebrow"><a href="../index.html" style="color:inherit;text-decoration:none;">← OGES</a> · VIZUALIZARE IMOBILE – EPSG3844</p>
+    <h1>Vizualizare Imobile<small>ANCPI · Stereo70 · căutare · export</small></h1></header>
+  <div class="body">
+
+    <div class="group">
+      <p class="lbl">Straturi</p>
+      <button class="toggle" id="t-parcel" aria-pressed="true"><span class="sw parcel"></span><span class="nm">Imobile (parcele)</span><span class="ck">ON</span></button>
+      <button class="toggle" id="t-building" aria-pressed="false"><span class="sw building"></span><span class="nm">Clădiri</span><span class="ck">OFF</span></button>
+      <div class="slider"><span class="lab">opac.</span><input id="ov-op" type="range" min="10" max="100" value="100" aria-label="Opacitate straturi"><span class="val" id="ov-op-v">100%</span></div>
+    </div>
+
+    <div class="group">
+      <p class="lbl">Caută / Identifică imobil</p>
+      <input class="txt" id="q-id" placeholder="INSPIRE_ID, prefix RO.x.y sau nr. cadastral" aria-label="Căutare imobil">
+      <div class="row">
+        <button class="btn prim" id="q-go" style="flex:1">Caută</button>
+        <button class="btn" id="q-pick" title="Click pe hartă pentru a identifica imobilul">Identifică pe hartă</button>
+      </div>
+      <div class="status" id="q-status"><span class="dot"></span><span id="q-status-t">caută după INSPIRE_ID întreg, prefix județ-UAT (RO.83.40991) sau nr. cadastral; ori folosește «Identifică pe hartă»</span></div>
+    </div>
+
+    <div class="group">
+      <p class="lbl">Export imobile vizibile</p>
+      <div class="grid2">
+        <button class="btn" id="ex-gj-3844">GeoJSON · 3844</button>
+        <button class="btn" id="ex-gj-wgs">GeoJSON · WGS84</button>
+        <button class="btn" id="ex-shp">SHP · 3844 (GDAL)</button>
+        <button class="btn" id="ex-sel">Doar selecția</button>
+      </div>
+      <div class="status" id="ex-status"><span class="dot"></span><span id="ex-status-t">interoghează pe extentul hărții</span></div>
+    </div>
+
+    <div class="group">
+      <p class="lbl">Fundal (background)</p>
+      <select class="bm" id="basemap-select" aria-label="Sursă fundal">
+        <optgroup label="Global — reproiectat în Stereo70">
+          <option value="xyz:sat" selected>Satelit (Esri World Imagery)</option>
+          <option value="xyz:osm">OpenStreetMap</option>
+          <option value="xyz:topo">OpenTopoMap (topo)</option>
+          <option value="xyz:light">CARTO Light</option>
+          <option value="xyz:dark">CARTO Dark</option>
+        </optgroup>
+        <optgroup label="—"><option value="none">Fără fundal</option></optgroup>
+      </select>
+      <div class="status loading" id="bm-status"><span class="dot"></span><span id="bm-status-t">se încarcă…</span></div>
+      <div class="slider"><span class="lab">opac.</span><input id="bm-op" type="range" min="20" max="100" value="100" aria-label="Opacitate fundal"><span class="val" id="bm-op-v">100%</span></div>
+    </div>
+
+    <div class="group">
+      <p class="lbl">Poziție GPS dispozitiv</p>
+      <button class="gps-btn" id="gps-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        Preia poziția mea</button>
+      <p class="msg" id="gps-msg"></p>
+    </div>
+
+    <div class="group">
+      <p class="lbl">Poziție &amp; scară</p>
+      <div class="readout" id="readout">
+        <div class="hd">Stereo70 (m) — cursor</div>
+        <span class="k">X · Nord</span><span class="v" id="r-x">—</span><span class="k">Y · Est</span><span class="v" id="r-y">—</span>
+        <div class="hd">WGS84 — cursor</div>
+        <span class="k">Lat</span><span class="v" id="r-lat">—</span><span class="k">Lng</span><span class="v" id="r-lng">—</span>
+        <div class="hd">Hartă</div>
+        <span class="k">Scară</span><span class="v" id="r-scale">—</span><span class="k">Zoom · LOD</span><span class="v" id="r-z">—</span>
+        <div class="hd gps" id="gps-head" style="display:none">Poziție GPS → Stereo70</div>
+        <span class="k gps-row" style="display:none">X · Nord</span><span class="v gps-row" id="g-x" style="display:none">—</span>
+        <span class="k gps-row" style="display:none">Y · Est</span><span class="v gps-row" id="g-y" style="display:none">—</span>
+        <span class="k gps-row" style="display:none">±/motor</span><span class="v gps-row" id="g-acc" style="display:none">—</span>
+        <div class="hd hl" id="hl-head" style="display:none">Imobil selectat</div>
+        <span class="k hl-row" style="display:none">ID</span><span class="v hl-row" id="h-id" style="display:none">—</span>
+        <span class="k hl-row" style="display:none">Suprafață</span><span class="v hl-row" id="h-area" style="display:none">—</span>
+      </div>
+    </div>
+
+    <p class="note">Surse: <a href="https://geoportal.ancpi.ro" target="_blank" rel="noopener">ANCPI</a></p>
+  </div>
+</section>
+
+<div class="legend" aria-hidden="true"><span><i class="p"></i>Imobile</span><span><i class="b"></i>Clădiri</span></div>
+
+<script src="lib/leaflet.min.js"></script>
+<script src="lib/proj4.min.js"></script>
+<script src="lib/proj4leaflet.min.js"></script>
+<script src="lib/Leaflet.VectorGrid.bundled.js"></script>
+<script src="lib/jszip.min.js"></script>
+<script src="lib/gdal3.js"></script>
+
+<script>
+/* === EPSG:3844 (Stereo70) === */
+proj4.defs("EPSG:3844","+proj=sterea +lat_0=46 +lon_0=25 +k=0.99975 +x_0=500000 +y_0=500000 +ellps=krass +towgs84=2.329,-147.042,-92.08,-0.309,0.325,0.497,5.69 +units=m +no_defs");
+var RES=[8669.88400643468,4334.94200321734,2167.47100160867,1083.735500804335,541.8677504021675,270.93387520108377,135.46693760054188,67.73346880027094,33.86673440013547,16.933367200067735,8.466683600033868,4.233341800016934,2.116670900008467,1.0583354500042335,0.5291677250021167,0.26458386250105836,0.13229193125052918,0.06614596562526459,0.033072982812632295,0.016536491406316147];
+var ORIGIN=[-1964300.0,2444139.0],TILE=512,MAX_CACHE_LOD=14;
+var crs=new L.Proj.CRS("EPSG:3844",proj4.defs("EPSG:3844"),{origin:ORIGIN,resolutions:RES,bounds:L.bounds([-2195.7677,160.1901],[875038.164,753224.55])});
+var map=L.map("map",{crs:crs,center:[44.4325,26.1039],zoom:12,minZoom:5,maxZoom:19,maxBounds:L.latLngBounds([43.4,20.0],[48.4,30.0]),maxBoundsViscosity:.6,tap:true});
+map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
+var ScaleRatio=L.Control.extend({options:{position:"bottomright"},onAdd:function(){var d=L.DomUtil.create("div","scale-ratio");d.id="scale-ratio";d.textContent="—";return d;}});
+map.addControl(new ScaleRatio());
+
+/* === Web Mercator helpers (reproiecție fundaluri XYZ) === */
+var MERC_R=6378137,MERC_O=20037508.342789244;
+function llToMerc(lng,lat){return{x:lng*Math.PI/180*MERC_R,y:Math.log(Math.tan(Math.PI/4+lat*Math.PI/360))*MERC_R};}
+function mercToPx(mx,my,z){var world=256*Math.pow(2,z),s=2*MERC_O;return{x:(mx+MERC_O)/s*world,y:(MERC_O-my)/s*world};}
+var XYZ={
+  osm:{name:"OSM",url:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",attr:"© OpenStreetMap",sub:null,max:19},
+  topo:{name:"OpenTopoMap",url:"https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",attr:"© OpenTopoMap (CC-BY-SA), © OSM",sub:"abc",max:17},
+  sat:{name:"Esri Imagery",url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",attr:"© Esri · Maxar · Earthstar",sub:null,max:19},
+  light:{name:"CARTO Light",url:"https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",attr:"© OSM · © CARTO",sub:"abcd",max:20},
+  dark:{name:"CARTO Dark",url:"https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",attr:"© OSM · © CARTO",sub:"abcd",max:20}
+};
+function xyzUrl(src,x,y,z){var u=src.url;if(src.sub){u=u.replace("{s}",src.sub[(x+y)%src.sub.length]);}return u.replace("{z}",z).replace("{x}",x).replace("{y}",y);}
+function solveAffine(s0,s1,s2,d0,d1,d2){var den=s0.x*(s2.y-s1.y)+s1.x*(s0.y-s2.y)+s2.x*(s1.y-s0.y);if(Math.abs(den)<1e-9)den=1e-9;
+  return{a:(d0.x*(s2.y-s1.y)+d1.x*(s0.y-s2.y)+d2.x*(s1.y-s0.y))/den,b:(d0.y*(s2.y-s1.y)+d1.y*(s0.y-s2.y)+d2.y*(s1.y-s0.y))/den,
+         c:(d0.x*(s1.x-s2.x)+d1.x*(s2.x-s0.x)+d2.x*(s0.x-s1.x))/den,d:(d0.y*(s1.x-s2.x)+d1.y*(s2.x-s0.x)+d2.y*(s0.x-s1.x))/den,
+         e:(d0.x*(s2.x*s1.y-s1.x*s2.y)+d1.x*(s0.x*s2.y-s2.x*s0.y)+d2.x*(s1.x*s0.y-s0.x*s1.y))/den,f:(d0.y*(s2.x*s1.y-s1.x*s2.y)+d1.y*(s0.x*s2.y-s2.x*s0.y)+d2.y*(s1.x*s0.y-s0.x*s1.y))/den};}
+function inflate(p,c,k){return{x:c.x+(p.x-c.x)*k,y:c.y+(p.y-c.y)*k};}
+function tri(ctx,img,s0,s1,s2,d0,d1,d2){var C={x:(d0.x+d1.x+d2.x)/3,y:(d0.y+d1.y+d2.y)/3},k=1.012;
+  var e0=inflate(d0,C,k),e1=inflate(d1,C,k),e2=inflate(d2,C,k);
+  ctx.save();ctx.beginPath();ctx.moveTo(e0.x,e0.y);ctx.lineTo(e1.x,e1.y);ctx.lineTo(e2.x,e2.y);ctx.closePath();ctx.clip();
+  var m=solveAffine(s0,s1,s2,d0,d1,d2);ctx.transform(m.a,m.b,m.c,m.d,m.e,m.f);ctx.drawImage(img,0,0);ctx.restore();}
+var ReprojLayer=L.GridLayer.extend({createTile:function(coords,done){
+  var src=this.options.src,tile=document.createElement("canvas");tile.width=256;tile.height=256;
+  var ctx=tile.getContext("2d");ctx.imageSmoothingQuality="high";var sz=L.point(256,256),nw=coords.scaleBy(sz);
+  function outMerc(px,py){var ll=map.unproject(nw.add([px,py]),coords.z);return llToMerc(ll.lng,ll.lat);}
+  var mA=outMerc(0,128),mB=outMerc(256,128),outRes=Math.abs(mB.x-mA.x)/256;
+  var srcZ=Math.round(Math.log2((2*MERC_O)/(256*outRes)));srcZ=Math.max(0,Math.min(src.max,srcZ));
+  var sp=[outMerc(0,0),outMerc(256,0),outMerc(0,256),outMerc(256,256),outMerc(128,0),outMerc(128,256),outMerc(0,128),outMerc(256,128)];
+  var mnx=Infinity,mny=Infinity,mxx=-Infinity,mxy=-Infinity;sp.forEach(function(p){mnx=Math.min(mnx,p.x);mxx=Math.max(mxx,p.x);mny=Math.min(mny,p.y);mxy=Math.max(mxy,p.y);});
+  var tl=mercToPx(mnx,mxy,srcZ),br=mercToPx(mxx,mny,srcZ),tx0=Math.floor(tl.x/256),ty0=Math.floor(tl.y/256),tx1=Math.floor(br.x/256),ty1=Math.floor(br.y/256);
+  while((tx1-tx0+1)*(ty1-ty0+1)>16&&srcZ>0){srcZ--;tl=mercToPx(mnx,mxy,srcZ);br=mercToPx(mxx,mny,srcZ);tx0=Math.floor(tl.x/256);ty0=Math.floor(tl.y/256);tx1=Math.floor(br.x/256);ty1=Math.floor(br.y/256);}
+  var ox=tx0*256,oy=ty0*256,scan=document.createElement("canvas");scan.width=(tx1-tx0+1)*256;scan.height=(ty1-ty0+1)*256;var sctx=scan.getContext("2d");
+  var jobs=[],n=Math.pow(2,srcZ);
+  for(var tx=tx0;tx<=tx1;tx++)for(var ty=ty0;ty<=ty1;ty++){(function(tx,ty){if(ty<0||ty>=n)return;var xx=((tx%n)+n)%n;
+    jobs.push(new Promise(function(res){var im=new Image();im.onload=function(){sctx.drawImage(im,tx*256-ox,ty*256-oy);res();};im.onerror=function(){res();};im.src=xyzUrl(src,xx,ty,srcZ);}));})(tx,ty);}
+  Promise.all(jobs).then(function(){function mSrc(mx,my){var p=mercToPx(mx,my,srcZ);return{x:p.x-ox,y:p.y-oy};}
+    var M=srcZ>=12?2:(srcZ>=8?4:8),step=256/M;
+    for(var i=0;i<M;i++)for(var j=0;j<M;j++){var d00={x:i*step,y:j*step},d10={x:(i+1)*step,y:j*step},d01={x:i*step,y:(j+1)*step},d11={x:(i+1)*step,y:(j+1)*step};
+      var a=outMerc(d00.x,d00.y),b=outMerc(d10.x,d10.y),c=outMerc(d01.x,d01.y),d=outMerc(d11.x,d11.y);
+      var s00=mSrc(a.x,a.y),s10=mSrc(b.x,b.y),s01=mSrc(c.x,c.y),s11=mSrc(d.x,d.y);
+      tri(ctx,scan,s00,s10,s11,d00,d10,d11);tri(ctx,scan,s00,s11,s01,d00,d11,d01);}
+    done(null,tile);}).catch(function(e){done(e,tile);});
+  return tile;}});
+
+/* === Fundaluri === */
+var MOZAIC_WMS="https://geoportal.ancpi.ro/maps/services/Ortofoto/Mozaic/MapServer/WMSServer";
+var MOZAIC_CACHE="https://geoportal.ancpi.ro/maps/rest/services/Ortofoto/Mozaic/MapServer";
+var TOPO_CACHE="https://geoportal.ancpi.ro/maps/rest/services/ANCPI/TopRo5_Topo_3844/MapServer";
+function makeBase(key){
+  if(key==="ancpi:ortho-wms")return L.tileLayer.wms(MOZAIC_WMS+"?",{layers:"0",format:"image/jpeg",version:"1.1.1",transparent:false,tileSize:512,maxZoom:19,attribution:"© ANCPI"});
+  if(key==="ancpi:ortho-cache")return L.tileLayer(MOZAIC_CACHE+"/tile/{z}/{y}/{x}",{tileSize:256,maxNativeZoom:16,maxZoom:19,attribution:"© ANCPI"});
+  if(key==="ancpi:topo-cache")return L.tileLayer(TOPO_CACHE+"/tile/{z}/{y}/{x}",{tileSize:256,maxNativeZoom:16,maxZoom:19,attribution:"© ANCPI"});
+  if(key.indexOf("xyz:")===0){var src=XYZ[key.slice(4)];return new ReprojLayer({src:src,maxZoom:19,attribution:src.attr+" · reproiectat Stereo70"});}
+  return L.layerGroup();}
+var currentBase=null,stEl=document.getElementById("bm-status"),stT=document.getElementById("bm-status-t");
+function setStatus(c,t){stEl.className="status "+c;stT.textContent=t;}
+function selectBase(key,isAuto){if(currentBase)map.removeLayer(currentBase);currentBase=makeBase(key);
+  if(key==="none"){setStatus("","fără fundal");currentBase.addTo(map);applyBmOpacity();bringTop();return;}
+  setStatus("loading","se încarcă…");var ok=false,errs=0;
+  currentBase.on("tileload",function(){if(!ok){ok=true;setStatus("ok","activ");}});
+  currentBase.on("tileerror",function(){errs++;if(!ok&&errs>=4)setStatus("fail","sursă indisponibilă");});
+  currentBase.addTo(map);if(currentBase.bringToBack)currentBase.bringToBack();applyBmOpacity();bringTop();}
+document.getElementById("basemap-select").addEventListener("change",function(e){selectBase(e.target.value,false);});
+var bmOp=document.getElementById("bm-op"),bmOpV=document.getElementById("bm-op-v");
+function applyBmOpacity(){var o=(+bmOp.value)/100;bmOpV.textContent=bmOp.value+"%";if(currentBase&&currentBase.setOpacity)currentBase.setOpacity(o);else if(currentBase&&currentBase.eachLayer)currentBase.eachLayer(function(l){l.setOpacity&&l.setOpacity(o);});}
+bmOp.addEventListener("input",applyBmOpacity);
+
+/* === Tile-urile vectoriale .pbf === */
+var VT_URL="https://geoportal.ancpi.ro/hosted_services/rest/services/Hosted/imobile_cladiri/VectorTileServer/tile/{z}/{y}/{x}.pbf";
+var show={parcel:true,building:false},ovOpacity=1;
+function isBuilding(n){n=(n||"").toLowerCase();return n.indexOf("cladir")>=0||n.indexOf("constr")>=0||n.indexOf("building")>=0||n.indexOf("bld")>=0;}
+function styleFor(name){if(isBuilding(name)){if(!show.building)return[];return{fill:true,fillColor:"#f6a821",fillOpacity:0.55*ovOpacity,color:"#7a4d00",weight:0.6,opacity:0.9*ovOpacity};}
+  if(!show.parcel)return[];return{fill:true,fillColor:"#19e6ff",fillOpacity:0.06*ovOpacity,color:"#19e6ff",weight:0.9,opacity:0.95*ovOpacity};}
+var styleProxy=new Proxy({},{get:function(_t,name){return function(){return styleFor(name);};},has:function(){return true;}});
+var vt=L.vectorGrid.protobuf(VT_URL,{rendererFactory:L.canvas.tile,tileSize:TILE,minZoom:5,maxZoom:19,maxNativeZoom:MAX_CACHE_LOD,interactive:true,vectorTileLayerStyles:styleProxy,attribution:"© ANCPI"}).addTo(map);
+var highlight=null;
+function bringTop(){if(vt&&vt.bringToFront)vt.bringToFront();if(highlight&&highlight.bringToFront)highlight.bringToFront();}
+vt.on("click",function(e){if(identifyMode)return;var p=(e.layer&&e.layer.properties)||{},keys=Object.keys(p);
+  var rows=keys.length?keys.map(function(k){return '<span class="k">'+esc(k)+'</span><span class="v">'+esc(p[k])+'</span>';}).join(""):'<span class="k" style="grid-column:1/-1;text-align:center">fără atribute în tile</span>';
+  L.popup({maxWidth:300}).setLatLng(e.latlng).setContent('<div class="pop-h">Entitate (tile)</div><div class="pop-t">'+rows+'</div>').openOn(map);L.DomEvent.stop(e);});
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+/* === Toggles + opacitate === */
+function bindToggle(id,key){var b=document.getElementById(id);b.addEventListener("click",function(){show[key]=!show[key];b.setAttribute("aria-pressed",show[key]?"true":"false");b.querySelector(".ck").textContent=show[key]?"ON":"OFF";vt.redraw();});}
+bindToggle("t-parcel","parcel");bindToggle("t-building","building");
+var ovOp=document.getElementById("ov-op"),ovOpV=document.getElementById("ov-op-v");
+ovOp.addEventListener("input",function(){ovOpacity=(+ovOp.value)/100;ovOpV.textContent=ovOp.value+"%";vt.redraw();});
+
+/* === Readout cursor === */
+function el(id){return document.getElementById(id);}
+function fmt(n){return Number(n).toLocaleString("ro-RO",{maximumFractionDigits:2,minimumFractionDigits:2});}
+map.on("mousemove",function(e){var p=crs.project(e.latlng);el("r-x").textContent=fmt(p.y);el("r-y").textContent=fmt(p.x);el("r-lat").textContent=e.latlng.lat.toFixed(6);el("r-lng").textContent=e.latlng.lng.toFixed(6);});
+function updateScale(){var z=map.getZoom(),res=RES[0]/Math.pow(2,z),scale=res/0.00028;var sr="1:"+Math.round(scale).toLocaleString("ro-RO");el("r-scale").textContent=sr;var sc=el("scale-ratio");if(sc)sc.textContent=sr;var lod=Math.min(Math.round(z),MAX_CACHE_LOD);el("r-z").textContent=z.toFixed(1)+" · LOD "+lod+(Math.round(z)>MAX_CACHE_LOD?"↑":"");}
+map.on("zoomend zoom move",updateScale);updateScale();
+
+/* === GDAL === */
+var Gdal=null;
+function ensureGdal(){if(Gdal)return Promise.resolve(Gdal);if(typeof initGdalJs==="undefined")return Promise.reject(new Error("gdal3.js neîncărcat"));
+  return initGdalJs({path:"https://cdn.jsdelivr.net/npm/gdal3.js@2.8.1/dist/package",useWorker:false}).then(function(g){Gdal=g;return g;});}
+function toStereo70(lng,lat){return ensureGdal().then(function(g){return g.gdaltransform([[lng,lat]],["-s_srs","EPSG:4326","-t_srs","EPSG:3844","-output_xy"]).then(function(o){return{E:o[0][0],N:o[0][1],engine:"GDAL "+(g.version||"3.x")};});}).catch(function(){var p=proj4("EPSG:4326","EPSG:3844",[lng,lat]);return{E:p[0],N:p[1],engine:"proj4"};});}
+
+/* === eterra3_publish: interogare === */
+var ETERRA="https://geoportal.ancpi.ro/maps/rest/services/eterra3_publish/MapServer/1/query";
+var jsonpId=0;
+function jsonp(base,params){return new Promise(function(res,rej){
+  var cb="__ecb"+(jsonpId++),s=document.createElement("script"),done=false;
+  var to=setTimeout(function(){if(!done){done=true;cleanup();rej(new Error("timeout"));}},20000);
+  window[cb]=function(d){done=true;clearTimeout(to);res(d);cleanup();};
+  function cleanup(){try{delete window[cb];}catch(e){window[cb]=undefined;}if(s.parentNode)s.parentNode.removeChild(s);}
+  s.onerror=function(){if(!done){done=true;clearTimeout(to);cleanup();rej(new Error("rețea/JSONP"));}};
+  var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+"="+encodeURIComponent(params[k]);}).join("&");
+  s.src=base+"?"+qs+"&f=json&callback="+cb;document.body.appendChild(s);});}
+function ringArea(r){var a=0;for(var i=0,j=r.length-1;i<r.length;j=i++){a+=r[j][0]*r[i][1]-r[i][0]*r[j][1];}return a/2;}
+function pInRing(pt,r){var x=pt[0],y=pt[1],ins=false;for(var i=0,j=r.length-1;i<r.length;j=i++){var xi=r[i][0],yi=r[i][1],xj=r[j][0],yj=r[j][1];if(((yi>y)!=(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))ins=!ins;}return ins;}
+function ringsToGeo(rings){var outers=[],holes=[];rings.forEach(function(r){(ringArea(r)<0?outers:holes).push(r);});
+  if(!outers.length){outers=rings;holes=[];}
+  if(outers.length<=1)return{type:"Polygon",coordinates:[].concat(outers,holes)};
+  var polys=outers.map(function(o){return[o];});holes.forEach(function(h){var idx=0;for(var i=0;i<outers.length;i++){if(pInRing(h[0],outers[i])){idx=i;break;}}polys[idx].push(h);});
+  return{type:"MultiPolygon",coordinates:polys};}
+function esriToGeoJSON(resp){var gt=resp.geometryType;var feats=(resp.features||[]).map(function(f){var geo=f.geometry||{},g=null;
+  if(gt==="esriGeometryPolygon"&&geo.rings)g=ringsToGeo(geo.rings);
+  else if(gt==="esriGeometryPolyline"&&geo.paths)g=geo.paths.length===1?{type:"LineString",coordinates:geo.paths[0]}:{type:"MultiLineString",coordinates:geo.paths};
+  else if(gt==="esriGeometryPoint"&&geo.x!=null)g={type:"Point",coordinates:[geo.x,geo.y]};
+  return{type:"Feature",properties:f.attributes||{},geometry:g};});
+  return{type:"FeatureCollection",features:feats,_exceeded:!!resp.exceededTransferLimit};}
+function eterraQuery(extra){var p=Object.assign({outFields:"*",returnGeometry:"true",outSR:"4326"},extra);
+  var qs=Object.keys(p).map(function(k){return encodeURIComponent(k)+"="+encodeURIComponent(p[k]);}).join("&");
+  return fetch(ETERRA+"?"+qs+"&f=geojson").then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
+    .then(function(gj){if(gj&&gj.error)throw new Error(gj.error.message||"ArcGIS");if(!gj||gj.type!=="FeatureCollection")throw new Error("răspuns neașteptat");gj._exceeded=!!gj.exceededTransferLimit;return gj;})
+    .catch(function(){return jsonp(ETERRA,p).then(function(d){if(d&&d.error)throw new Error(d.error.message||"ArcGIS error");return esriToGeoJSON(d);});});}
+function pickIdField(props){var keys=Object.keys(props||{});for(var i=0;i<keys.length;i++){if(/inspire/i.test(keys[i]))return keys[i];}
+  for(i=0;i<keys.length;i++){if(/cad|immov|imobil|nation/i.test(keys[i]))return keys[i];}return keys[0]||null;}
+function pickAreaField(props){var keys=Object.keys(props||{});for(var i=0;i<keys.length;i++){if(/area|supraf/i.test(keys[i]))return keys[i];}return null;}
+function popupRows(props){var hide=/^(objectid|immovable_?id)$/i,inspKey=null,html="";
+  var keys=Object.keys(props||{}).filter(function(k){return !hide.test(k);});
+  keys.forEach(function(k){if(!inspKey&&/inspire/i.test(k))inspKey=k;});
+  if(inspKey)html+='<span class="k idkey">'+esc(inspKey)+'</span><span class="v idline">'+esc(props[inspKey])+'</span>';
+  keys.slice(0,14).forEach(function(k){if(k===inspKey)return;html+='<span class="k">'+esc(k)+'</span><span class="v">'+esc(props[k])+'</span>';});
+  return html;}
+function showHL(fc,zoom){if(highlight){map.removeLayer(highlight);highlight=null;}
+  try{highlight=L.geoJSON(fc,{style:{color:"#ffd400",weight:2.5,fillColor:"#ffd400",fillOpacity:.18}}).addTo(map);}catch(e){}
+  var f=fc.features&&fc.features[0],props=f?f.properties:{},idf=pickIdField(props),af=pickAreaField(props);
+  el("hl-head").style.display="block";[].forEach.call(document.querySelectorAll(".hl-row"),function(n){n.style.display="";});
+  el("h-id").textContent=idf?String(props[idf]):"—";el("h-area").textContent=af?fmt(props[af])+" m²":"—";
+  var b=highlight?highlight.getBounds():null,ok=b&&b.isValid();
+  if(zoom&&ok){try{map.fitBounds(b,{maxZoom:18,padding:[40,40],animate:false});}catch(e){}}
+  bringTop();
+  if(f&&ok){var rows=popupRows(props);
+    try{L.popup({maxWidth:340,autoPan:true,autoPanPadding:[30,30],keepInView:true}).setLatLng(L.latLng(b.getNorth(),b.getCenter().lng)).setContent('<div class="pop-h">Imobil · eterra3</div><div class="pop-t">'+rows+'</div>').openOn(map);}catch(e){}}
+}
+var lastFC=null;
+function qStat(c,t){var s=el("q-status");s.className="status "+c;el("q-status-t").textContent=t;}
+var FIELDS=null,IDFIELD=null,NUMFIELD=null,ELAYER="https://geoportal.ancpi.ro/maps/rest/services/eterra3_publish/MapServer/1";
+function loadFields(){if(FIELDS)return Promise.resolve(FIELDS);
+  return fetch(ELAYER+"?f=json").then(function(r){if(!r.ok)throw 0;return r.json();}).catch(function(){return jsonp(ELAYER,{});}).then(function(meta){
+    FIELDS=(meta&&meta.fields)||[];
+    FIELDS.forEach(function(f){var n=f.name||"",t=f.type||"";
+      if(!IDFIELD&&/inspire/i.test(n))IDFIELD=n;
+      if(!NUMFIELD&&/(immov|imobil|cadastr|^id$|_id$|idimobil|numar)/i.test(n)&&/Integer|Double|OID|Single/i.test(t))NUMFIELD=n;});
+    if(!IDFIELD){var sf=FIELDS.filter(function(f){return /String/i.test(f.type||"");})[0];IDFIELD=(meta&&meta.displayField)||(sf&&sf.name)||"INSPIRE_ID";}
+    return FIELDS;}).catch(function(){IDFIELD=IDFIELD||"INSPIRE_ID";return[];});}
+function buildWhere(v){var idf=IDFIELD||"INSPIRE_ID",vv=v.replace(/'/g,"");
+  if(/%/.test(v))return idf+" LIKE '"+vv+"'";
+  if(v.indexOf(".")>=0&&v.split(".").length>=4)return idf+"='"+vv+"'";
+  if(v.indexOf(".")>=0)return idf+" LIKE '"+vv+"%'";
+  if(/^\d+$/.test(v))return (NUMFIELD?(NUMFIELD+"="+v+" OR "):"")+idf+" LIKE '%."+v+"'";
+  return idf+" LIKE '%"+vv+"%'";}
+function searchId(){var v=(el("q-id").value||"").trim();if(!v){qStat("","tastează INSPIRE_ID, prefix județ-UAT sau nr. cadastral");return;}
+  qStat("loading","caut…");
+  loadFields().then(function(){return eterraQuery({where:buildWhere(v),resultRecordCount:"50"});}).then(function(fc){
+    if(!fc.features||!fc.features.length){qStat("fail","niciun imobil pentru „"+v+"” — încearcă nr. cadastral sau «Identifică pe hartă»");return;}
+    lastFC=fc;showHL(fc,true);qStat("ok",fc.features.length+" imobil(e) găsite · câmp "+(IDFIELD||"?"));
+  }).catch(function(e){qStat("fail","eroare: "+e.message);});}
+el("q-go").addEventListener("click",searchId);
+el("q-id").addEventListener("keydown",function(e){if(e.key==="Enter")searchId();});
+
+var identifyMode=false,lastIdent=0;
+el("q-pick").addEventListener("click",function(){identifyMode=!identifyMode;this.classList.toggle("act",identifyMode);
+  qStat("",identifyMode?"click pe hartă pentru a identifica imobilul":"identificare oprită");
+  map.getContainer().style.cursor=identifyMode?"crosshair":"";});
+function identifyAt(latlng){var now=Date.now();if(now-lastIdent<350)return;lastIdent=now;qStat("loading","interoghez punctul…");
+  eterraQuery({geometry:latlng.lng+","+latlng.lat,geometryType:"esriGeometryPoint",inSR:"4326",spatialRel:"esriSpatialRelIntersects",resultRecordCount:"5"}).then(function(fc){
+    if(!fc.features||!fc.features.length){qStat("fail","niciun imobil în acest punct");return;}
+    lastFC=fc;showHL(fc,false);qStat("ok","imobil identificat");}).catch(function(err){qStat("fail","eroare ("+err.message+")");});}
+map.on("click",function(e){if(identifyMode)identifyAt(e.latlng);});
+map.getContainer().addEventListener("click",function(ev){
+  if(!identifyMode)return;
+  if(ev.target&&ev.target.closest&&ev.target.closest(".leaflet-control,.leaflet-popup"))return;
+  try{identifyAt(map.mouseEventToLatLng(ev));}catch(e){}
+},true);
+
+/* === Export === */
+function dl(blob,name){var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);}
+function exStat(c,t){var s=el("ex-status");s.className="status "+c;el("ex-status-t").textContent=t;}
+function fetchVisible(){ // parcele din eterra3 pe extentul hărții, în WGS84, cu paginare
+  var b=map.getBounds(),c=[crs.project(b.getSouthWest()),crs.project(b.getNorthEast()),crs.project(b.getNorthWest()),crs.project(b.getSouthEast())];
+  var xs=c.map(function(p){return p.x;}),ys=c.map(function(p){return p.y;});
+  var env=[Math.min.apply(null,xs),Math.min.apply(null,ys),Math.max.apply(null,xs),Math.max.apply(null,ys)].join(",");
+  var all=[],PAGE=1000,MAXP=5;
+  function page(off,i){return eterraQuery({geometry:env,geometryType:"esriGeometryEnvelope",inSR:"3844",spatialRel:"esriSpatialRelIntersects",resultOffset:String(off),resultRecordCount:String(PAGE)}).then(function(fc){
+    var fs=(fc&&fc.features)||[];all=all.concat(fs);exStat("loading",all.length+" imobile…");
+    if(fs.length===PAGE&&i+1<MAXP)return page(off+PAGE,i+1);
+    return {type:"FeatureCollection",features:all,_truncated:(fs.length===PAGE&&i+1>=MAXP)};});}
+  return page(0,0);}
+function reprojFC(fc){function pt(c){var p=proj4("EPSG:4326","EPSG:3844",[c[0],c[1]]);return[+p[0].toFixed(3),+p[1].toFixed(3)];}
+  function rg(r){return r.map(pt);}function gm(g){if(!g)return g;var t=g.type;
+    if(t==="Polygon")return{type:t,coordinates:g.coordinates.map(rg)};if(t==="MultiPolygon")return{type:t,coordinates:g.coordinates.map(function(p){return p.map(rg);})};
+    if(t==="LineString")return{type:t,coordinates:rg(g.coordinates)};if(t==="MultiLineString")return{type:t,coordinates:g.coordinates.map(rg)};
+    if(t==="Point")return{type:t,coordinates:pt(g.coordinates)};if(t==="MultiPoint")return{type:t,coordinates:rg(g.coordinates)};return g;}
+  return{type:"FeatureCollection",crs:{type:"name",properties:{name:"urn:ogc:def:crs:EPSG::3844"}},features:(fc.features||[]).map(function(f){return{type:"Feature",properties:f.properties,geometry:gm(f.geometry)};})};}
+function gdalConvert(fc,fmt){ // fmt: 'geojson3844' | 'shp'
+  return ensureGdal().then(function(g){
+    var inF=new File([JSON.stringify(fc)],"in.geojson",{type:"application/geo+json"});
+    return g.open(inF).then(function(r){var ds=r.datasets[0];
+      var args=fmt==="shp"?["-f","ESRI Shapefile","-s_srs","EPSG:4326","-t_srs","EPSG:3844","-nln","imobile","-skipfailures"]
+                          :["-f","GeoJSON","-s_srs","EPSG:4326","-t_srs","EPSG:3844","-nln","imobile","-skipfailures"];
+      return g.ogr2ogr(ds,args).then(function(out){
+        var files=Array.isArray(out)?out:(out&&out.all?out.all:[out]);
+        if(fmt!=="shp"){return g.getFileBytes(files[0]).then(function(by){return new Blob([by],{type:"application/geo+json"});});}
+        var zip=new JSZip(),tasks=[];
+        function add(fp){var nm=(""+(fp.local||fp.real||fp)).split("/").pop();return g.getFileBytes(fp).then(function(by){if(by&&by.length)zip.file("imobile_"+nm.replace(/^in\./,"imobile.").replace(/^imobile_/,""),by);}).catch(function(){});}
+        // încearcă fișierele întoarse + frații .shx/.dbf/.prj/.cpg derivați
+        files.forEach(function(fp){tasks.push(add(fp));});
+        var base=(""+((files[0]&&(files[0].local||files[0].real))||files[0]||"")).replace(/\.[a-z]+$/i,"");
+        ["shp","shx","dbf","prj","cpg"].forEach(function(ext){tasks.push(g.getFileBytes(base+"."+ext).then(function(by){if(by&&by.length)zip.file("imobile."+ext,by);}).catch(function(){}));});
+        return Promise.all(tasks).then(function(){return zip.generateAsync({type:"blob"});});});});});}
+function runExport(kind){ // kind: 'gj3844' | 'gjwgs' | 'shp' | 'sel'
+  var srcP = (kind==="sel") ? Promise.resolve(lastFC) : fetchVisible();
+  exStat("loading","interoghez imobilele…");
+  srcP.then(function(fc){
+    if(!fc||!fc.features||!fc.features.length){exStat("fail",kind==="sel"?"nicio selecție — caută/identifică întâi":"niciun imobil în extent");return;}
+    var n=fc.features.length,trunc=fc._truncated?" (trunchiat la 5000)":"";
+    if(kind==="gjwgs"){dl(new Blob([JSON.stringify(fc)],{type:"application/geo+json"}),"imobile_wgs84.geojson");exStat("ok",n+" imobile · WGS84"+trunc);return;}
+    if(kind==="shp"){exStat("loading","GDAL → SHP (3844)…");
+      gdalConvert(fc,"shp").then(function(blob){dl(blob,"imobile_stereo70.zip");exStat("ok",n+" imobile · SHP/3844"+trunc);})
+      .catch(function(e){exStat("fail","SHP necesită GDAL (http(s)). "+e.message);});return;}
+    // gj3844 sau sel → GeoJSON 3844 (GDAL, cu fallback proj4)
+    exStat("loading","GDAL → GeoJSON (3844)…");
+    gdalConvert(fc,"geojson3844").then(function(blob){dl(blob,"imobile_stereo70.geojson");exStat("ok",n+" imobile · 3844/GDAL"+trunc);})
+    .catch(function(){var b=new Blob([JSON.stringify(reprojFC(fc))],{type:"application/geo+json"});dl(b,"imobile_stereo70.geojson");exStat("ok",n+" imobile · 3844/proj4"+trunc);});
+  }).catch(function(e){exStat("fail","eroare: "+e.message);});}
+el("ex-gj-3844").addEventListener("click",function(){runExport("gj3844");});
+el("ex-gj-wgs").addEventListener("click",function(){runExport("gjwgs");});
+el("ex-shp").addEventListener("click",function(){runExport("shp");});
+el("ex-sel").addEventListener("click",function(){runExport("sel");});
+
+/* === GPS === */
+var gpsMarker=null,gpsCircle=null;var gpsBtn=el("gps-btn"),gpsMsg=el("gps-msg");
+var LocateControl=L.Control.extend({options:{position:"topleft"},onAdd:function(){var d=L.DomUtil.create("div","leaflet-bar locate");var a=L.DomUtil.create("a","",d);a.href="#";a.title="Preia poziția GPS";a.setAttribute("role","button");L.DomEvent.on(a,"click",function(ev){L.DomEvent.stop(ev);locateMe();});this._wrap=d;return d;}});
+var locateCtl=new LocateControl();map.addControl(locateCtl);
+function setGpsBusy(b){if(locateCtl._wrap)locateCtl._wrap.classList.toggle("active",b);gpsBtn.disabled=b;gpsBtn.style.opacity=b?.6:1;}
+function gpsRows(s){[].forEach.call(document.querySelectorAll(".gps-row,#gps-head"),function(n){n.style.display=s?(n.tagName==="DIV"?"block":""):"none";});}
+function locateMe(){if(!navigator.geolocation){gpsMsg.className="msg err";gpsMsg.textContent="Geolocation indisponibil.";return;}
+  gpsMsg.className="msg";gpsMsg.textContent="Se determină poziția…";setGpsBusy(true);
+  navigator.geolocation.getCurrentPosition(onGps,onGpsErr,{enableHighAccuracy:true,timeout:12000,maximumAge:0});}
+function onGps(pos){var lat=pos.coords.latitude,lng=pos.coords.longitude,acc=pos.coords.accuracy||0;
+  gpsMsg.className="msg";gpsMsg.textContent="Transform WGS84→EPSG:3844 (GDAL)…";
+  toStereo70(lng,lat).then(function(r){setGpsBusy(false);var ll=crs.unproject(L.point(r.E,r.N));
+    if(gpsMarker)map.removeLayer(gpsMarker);if(gpsCircle)map.removeLayer(gpsCircle);
+    gpsCircle=L.circle(ll,{radius:Math.max(acc,1),color:"#ff5da2",weight:1,fillColor:"#ff5da2",fillOpacity:.12}).addTo(map);
+    gpsMarker=L.circleMarker(ll,{radius:6,color:"#ff5da2",weight:2,fillColor:"#ff5da2",fillOpacity:1}).addTo(map);
+    gpsMarker.bindPopup('<div class="pop-h">Poziția mea · Stereo70</div><div class="pop-t"><span class="k">X·N</span><span class="v">'+fmt(r.N)+'</span><span class="k">Y·E</span><span class="v">'+fmt(r.E)+'</span><span class="k">±</span><span class="v">'+Math.round(acc)+' m</span><span class="k">motor</span><span class="v">'+r.engine+'</span></div>').openPopup();
+    gpsRows(true);el("g-x").textContent=fmt(r.N);el("g-y").textContent=fmt(r.E);el("g-acc").textContent="±"+Math.round(acc)+" m · "+r.engine;
+    map.setView(ll,Math.max(map.getZoom(),16),{animate:true});
+    var inRO=map.options.maxBounds.contains(ll);gpsMsg.className="msg "+(inRO?"ok":"err");
+    gpsMsg.textContent=(inRO?"Poziție transformată ":"Poziție în afara ariei ")+"(±"+Math.round(acc)+" m) · "+r.engine;});}
+function onGpsErr(err){setGpsBusy(false);gpsMsg.className="msg err";
+  var m={1:"Permisiune refuzată.",2:"Poziție indisponibilă.",3:"Timp expirat."}[err.code]||("Eroare: "+err.message);
+  if(location.protocol==="file:")m+=" — pe file:// geolocația e blocată; folosește http://localhost/https.";gpsMsg.textContent=m;}
+gpsBtn.addEventListener("click",locateMe);
+
+/* === Collapse + start === */
+var panel=el("panel"),col=el("collapse");
+col.addEventListener("click",function(){panel.classList.toggle("min");col.textContent=panel.classList.contains("min")?"›":"‹";});
+map.on("layeradd",bringTop);
+selectBase("xyz:sat",false);
+
+/* === Mobil: pliază panoul la pornire pe ecrane mici === */
+if(window.matchMedia&&window.matchMedia("(max-width:600px)").matches){panel.classList.add("min");col.textContent="›";}
+/* === PWA: service worker (instalabil/offline shell) === */
+if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vizualizare Imobile">
+  <defs><clipPath id="r"><rect width="512" height="512" rx="104"/></clipPath></defs>
+  <g clip-path="url(#r)">
+    <rect width="512" height="512" fill="#0b1220"/>
+    <g fill="none" stroke="#19e6ff" stroke-width="7" opacity="0.85">
+      <path d="M64 150 L300 96 L452 168 L210 224 Z"/>
+      <path d="M64 150 L96 360 L300 320 L300 96"/>
+      <path d="M300 320 L452 392 L452 168"/>
+      <path d="M210 224 L240 430"/>
+      <path d="M96 360 L240 430 L452 392"/>
+    </g>
+    <g fill="#f6a821" stroke="#7a4d00" stroke-width="5">
+      <rect x="196" y="250" width="92" height="70" transform="skewX(-12)"/>
+    </g>
+    <circle cx="368" cy="372" r="30" fill="#ff5da2" stroke="#0b1220" stroke-width="6"/>
+  </g>
+</svg>
