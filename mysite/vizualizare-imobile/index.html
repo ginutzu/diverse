@@ -92,10 +92,66 @@
     .scale-ratio{font-size:12px;padding:5px 10px}
   }
   @media (max-width:600px) and (orientation:landscape){.panel .body{max-height:70vh}}
+  /* === Splash / disclaimer (stil popup) === */
+  #splash{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;
+    padding:max(16px,env(safe-area-inset-top,0)) 16px max(16px,env(safe-area-inset-bottom,0));
+    background:rgba(7,12,20,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    opacity:1;transition:opacity .25s ease}
+  #splash.hide{opacity:0;pointer-events:none}
+  #splash .card{width:min(560px,100%);max-height:88vh;overflow:auto;-webkit-overflow-scrolling:touch;
+    background:var(--panel-solid);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+  #splash .top{border-top:3px solid var(--warn);border-radius:14px 14px 0 0}
+  #splash .in{padding:18px 20px 20px}
+  #splash .ph{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 4px}
+  #splash h2{margin:0 0 12px;font-size:22px;font-weight:700;letter-spacing:.02em;color:var(--warn);
+    display:flex;align-items:center;gap:10px}
+  #splash h2 svg{width:22px;height:22px;flex:0 0 auto}
+  #splash p{margin:0 0 11px;font-size:13.5px;line-height:1.55;color:var(--text)}
+  #splash p .em{color:var(--hl);font-weight:600}
+  #splash p.fine{font-size:12.5px;color:var(--muted)}
+  #splash .src{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);margin:2px 0 14px}
+  #splash .src a{color:var(--accent);text-decoration:none}
+  #splash .act{display:flex;gap:10px;flex-wrap:wrap}
+  #splash button{flex:1 1 auto;min-height:46px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;
+    border-radius:10px;padding:11px 14px;border:1px solid var(--accent);background:var(--accent);color:#04111a}
+  #splash button:hover{filter:brightness(1.05)}
+  #splash button.ghost{background:#ffffff0a;color:var(--text);border-color:var(--line)}
+  @media (max-width:560px){
+    #splash .in{padding:16px 16px 18px}
+    #splash h2{font-size:19px}
+    #splash p{font-size:13px}
+    #splash .act{position:sticky;bottom:0;background:var(--panel-solid);padding-top:8px}
+  }
+  @media (max-height:560px){#splash .card{max-height:94vh}}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
+<div id="splash" role="dialog" aria-modal="true" aria-labelledby="splash-h">
+  <div class="card">
+    <div class="top"></div>
+    <div class="in">
+      <p class="ph">Vizualizare Imobile · înainte de a continua</p>
+      <h2 id="splash-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.42 0z"/></svg>ATENȚIE !!!</h2>
+      <p>Datele cadastrale (imobile, clădiri, atribute) sunt proprietatea ANCPI și se supun termenilor de utilizare ai ANCPI. O parte din date și servicii se comercializează prin platformele oficiale (epay / myEterra); accesul public prin geoportal este destinat consultării, nu reutilizării automate la scară. Utilizarea trebuie făcută responsabil, cu păstrarea atribuirii sursei și fără a depăși limitele rezonabile de interogare.</p>
+      <p>Fundalurile globale și bibliotecile software se folosesc conform licențelor și termenilor proprii. Aplicația nu conține token-uri, parole sau alte credențiale; acestea nu se includ niciodată în codul publicat.</p>
+      <p class="fine">Prezenta este o aplicație de consultare și <span class="em">NU constituie document oficial de carte funciară</span>. Pentru extrase și informații cu valoare juridică se folosesc canalele oficiale ANCPI.</p>
+      <p class="src">Sursă: <a href="https://geoportal.ancpi.ro" target="_blank" rel="noopener">ANCPI</a></p>
+      <div class="act"><button id="splash-ok" type="button" autofocus>Am înțeles, continuă</button></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){var s=document.getElementById("splash"),b=document.getElementById("splash-ok");
+  function close(){s.classList.add("hide");setTimeout(function(){if(s&&s.parentNode)s.style.display="none";},300);
+    document.removeEventListener("keydown",onKey);}
+  function onKey(e){if(e.key==="Escape"||e.key==="Enter")close();}
+  if(b)b.addEventListener("click",close);
+  s.addEventListener("click",function(e){if(e.target===s)close();});
+  document.addEventListener("keydown",onKey);
+  try{b&&b.focus();}catch(e){}
+})();
+</script>
 <div id="map" role="application" aria-label="Hartă cadastrală ANCPI"></div>
 <button class="collapse" id="collapse" aria-label="Restrânge panoul">‹</button>
 
@@ -186,7 +242,7 @@
 <script src="lib/proj4leaflet.min.js"></script>
 <script src="lib/Leaflet.VectorGrid.bundled.js"></script>
 <script src="lib/jszip.min.js"></script>
-<script src="lib/gdal3.js"></script>
+<script src="lib/gdal3.js" crossorigin="anonymous"></script>
 
 <script>
 /* === EPSG:3844 (Stereo70) === */
