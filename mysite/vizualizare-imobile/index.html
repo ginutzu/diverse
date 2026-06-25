@@ -69,10 +69,10 @@
   .leaflet-bar.locate a::before{content:"";position:absolute;inset:0;background:no-repeat center/18px 18px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23dbe6f5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3'/><path d='M12 2v3M12 19v3M2 12h3M19 12h3'/></svg>")}
   .leaflet-bar.locate.active a::before{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff5da2' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='3'/><path d='M12 2v3M12 19v3M2 12h3M19 12h3'/></svg>")}
   .leaflet-popup-content-wrapper{background:var(--panel-solid);color:var(--text);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
-  .leaflet-popup-tip{background:var(--panel-solid);border:1px solid var(--line)}.leaflet-popup-content{margin:11px 13px;font-size:12.5px;max-height:260px;overflow:auto}
+  .leaflet-popup-tip{background:var(--panel-solid);border:1px solid var(--line)}.leaflet-popup-content{margin:11px 13px;font-size:12.5px}
   .pop-h{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
   .pop-t{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-family:"IBM Plex Mono",monospace;font-size:11px}.pop-t .k{color:var(--muted)}.pop-t .v{text-align:right;color:#eaf3ff;word-break:break-word}
-  .pop-t .v.idline{grid-column:1/-1;text-align:left;white-space:nowrap;word-break:normal;color:var(--hl);font-weight:600;margin-bottom:3px}
+  .pop-t .v.idline{grid-column:1/-1;text-align:left;white-space:nowrap;word-break:normal;color:var(--hl);font-weight:600;font-size:10px;padding-right:8px;margin-bottom:3px}
   .pop-t .k.idkey{grid-column:1/-1;color:var(--accent)}
   .leaflet-bar a{background:var(--panel-solid);color:var(--text);border-bottom-color:var(--line)}.leaflet-bar a:hover{background:#16263c}
   .leaflet-control-attribution{background:#0e1726cc!important;color:var(--muted)!important;font-size:10px}.leaflet-control-attribution a{color:var(--accent)!important}
@@ -345,9 +345,9 @@ ovOp.addEventListener("input",function(){ovOpacity=(+ovOp.value)/100;ovOpV.textC
 
 /* === Readout cursor === */
 function el(id){return document.getElementById(id);}
-function fmt(n){return Number(n).toLocaleString("ro-RO",{maximumFractionDigits:2,minimumFractionDigits:2});}
+function fmt(n){return Number(n).toLocaleString("ro-RO",{useGrouping:false,maximumFractionDigits:2,minimumFractionDigits:2});}
 map.on("mousemove",function(e){var p=crs.project(e.latlng);el("r-x").textContent=fmt(p.y);el("r-y").textContent=fmt(p.x);el("r-lat").textContent=e.latlng.lat.toFixed(6);el("r-lng").textContent=e.latlng.lng.toFixed(6);});
-function updateScale(){var z=map.getZoom(),res=RES[0]/Math.pow(2,z),scale=res/0.00028;var sr="1:"+Math.round(scale).toLocaleString("ro-RO");el("r-scale").textContent=sr;var sc=el("scale-ratio");if(sc)sc.textContent=sr;var lod=Math.min(Math.round(z),MAX_CACHE_LOD);el("r-z").textContent=z.toFixed(1)+" · LOD "+lod+(Math.round(z)>MAX_CACHE_LOD?"↑":"");}
+function updateScale(){var z=map.getZoom(),res=RES[0]/Math.pow(2,z),scale=res/0.00028;var sr="1:"+String(Math.round(scale));el("r-scale").textContent=sr;var sc=el("scale-ratio");if(sc)sc.textContent=sr;var lod=Math.min(Math.round(z),MAX_CACHE_LOD);el("r-z").textContent=z.toFixed(1)+" · LOD "+lod+(Math.round(z)>MAX_CACHE_LOD?"↑":"");}
 map.on("zoomend zoom move",updateScale);updateScale();
 
 /* === GDAL === */
@@ -388,11 +388,13 @@ function eterraQuery(extra){var p=Object.assign({outFields:"*",returnGeometry:"t
 function pickIdField(props){var keys=Object.keys(props||{});for(var i=0;i<keys.length;i++){if(/inspire/i.test(keys[i]))return keys[i];}
   for(i=0;i<keys.length;i++){if(/cad|immov|imobil|nation/i.test(keys[i]))return keys[i];}return keys[0]||null;}
 function pickAreaField(props){var keys=Object.keys(props||{});for(var i=0;i<keys.length;i++){if(/area|supraf/i.test(keys[i]))return keys[i];}return null;}
-function popupRows(props){var hide=/^(objectid|immovable_?id)$/i,inspKey=null,html="";
-  var keys=Object.keys(props||{}).filter(function(k){return !hide.test(k);});
-  keys.forEach(function(k){if(!inspKey&&/inspire/i.test(k))inspKey=k;});
-  if(inspKey)html+='<span class="k idkey">'+esc(inspKey)+'</span><span class="v idline">'+esc(props[inspKey])+'</span>';
-  keys.slice(0,14).forEach(function(k){if(k===inspKey)return;html+='<span class="k">'+esc(k)+'</span><span class="v">'+esc(props[k])+'</span>';});
+function popupRows(props){props=props||{};var keys=Object.keys(props),html="";
+  function find(re){for(var i=0;i<keys.length;i++){if(re.test(keys[i]))return keys[i];}return null;}
+  var inspKey=find(/inspire/i);
+  var ncrKey=find(/national_?cadastral_?reference/i)||find(/cadastral_?reference/i)||find(/national.*cadastr/i);
+  if(inspKey)html+='<span class="k idkey">INSPIRE_ID</span><span class="v idline">'+esc(props[inspKey])+'</span>';
+  if(ncrKey)html+='<span class="k idkey">IE</span><span class="v idline">'+esc(props[ncrKey])+'</span>';
+  if(!html)html='<span class="k" style="grid-column:1/-1;text-align:center">fără identificatori</span>';
   return html;}
 function showHL(fc,zoom){if(highlight){map.removeLayer(highlight);highlight=null;}
   try{highlight=L.geoJSON(fc,{style:{color:"#ffd400",weight:2.5,fillColor:"#ffd400",fillOpacity:.18}}).addTo(map);}catch(e){}
@@ -403,7 +405,7 @@ function showHL(fc,zoom){if(highlight){map.removeLayer(highlight);highlight=null
   if(zoom&&ok){try{map.fitBounds(b,{maxZoom:18,padding:[40,40],animate:false});}catch(e){}}
   bringTop();
   if(f&&ok){var rows=popupRows(props);
-    try{L.popup({maxWidth:340,autoPan:true,autoPanPadding:[30,30],keepInView:true}).setLatLng(L.latLng(b.getNorth(),b.getCenter().lng)).setContent('<div class="pop-h">Imobil · eterra3</div><div class="pop-t">'+rows+'</div>').openOn(map);}catch(e){}}
+    try{L.popup({maxWidth:Math.max(240,Math.min(860,((map.getSize&&map.getSize().x)||window.innerWidth||400)-24)),autoPan:true,autoPanPadding:[30,30],keepInView:true}).setLatLng(L.latLng(b.getNorth(),b.getCenter().lng)).setContent('<div class="pop-h">Imobil · eterra3</div><div class="pop-t">'+rows+'</div>').openOn(map);}catch(e){}}
 }
 var lastFC=null;
 function qStat(c,t){var s=el("q-status");s.className="status "+c;el("q-status-t").textContent=t;}

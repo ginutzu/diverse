@@ -2,7 +2,7 @@
  * Scope-relative paths so it works both at the domain root (NAS)
  * and under a subpath like /diverse/ (GitHub Pages).
  */
-const CACHE_NAME = 'oges-v10';
+const CACHE_NAME = 'oges-v11';
 
 // Pre-cached app shell. Relative URLs resolve against the SW location (its scope),
 // so they are correct whether the site is served from "/" or from "/diverse/".
