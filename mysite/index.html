@@ -116,6 +116,13 @@
 			.navbar .nav-link:hover { background: rgba(0, 212, 255, 0.08); }
 		}
 
+		/* ===== Hero image (neon GIS sign) ===== */
+		.hero-visual .map-preview { padding: 0; background: none; box-shadow: none; border: none; }
+		.hero-img {
+			width: 100%; height: 100%; object-fit: contain; display: block;
+			border-radius: 1rem; filter: drop-shadow(0 0 16px rgba(0, 212, 255, 0.25));
+		}
+
 		/* ===== Coordinate Picker Tool (dark-tech theme) ===== */
 		.coord-tool { padding: 60px 0; }
 		.coord-tool-intro {
@@ -325,42 +332,7 @@
 
 				<div class="hero-visual">
 					<div class="map-preview">
-						<svg viewBox="0 0 300 300" class="map-svg">
-							<defs>
-								<linearGradient id="mapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-									<stop offset="0%" style="stop-color:#00d4ff;stop-opacity:0.3"/>
-									<stop offset="100%" style="stop-color:#00ff88;stop-opacity:0.1"/>
-								</linearGradient>
-								<filter id="glow">
-									<feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-									<feMerge>
-										<feMergeNode in="coloredBlur"/>
-										<feMergeNode in="SourceGraphic"/>
-									</feMerge>
-								</filter>
-							</defs>
-
-							<!-- Map background -->
-							<rect width="300" height="300" fill="var(--bg-card)" opacity="0.5"/>
-							<path d="M50 100 Q100 50, 150 75 Q200 100, 250 50" stroke="var(--primary)" stroke-width="1.5" fill="none" opacity="0.4"/>
-							<path d="M30 150 Q90 120, 150 140 Q210 160, 270 130" stroke="var(--secondary)" stroke-width="1.5" fill="none" opacity="0.4"/>
-
-							<!-- Data points -->
-							<circle cx="80" cy="120" r="4" fill="var(--primary)" filter="url(#glow)"/>
-							<circle cx="150" cy="140" r="5" fill="var(--secondary)" filter="url(#glow)"/>
-							<circle cx="220" cy="100" r="3" fill="var(--accent)" filter="url(#glow)"/>
-							<circle cx="110" cy="200" r="4" fill="var(--primary)" filter="url(#glow)"/>
-							<circle cx="240" cy="180" r="4" fill="var(--secondary)" filter="url(#glow)"/>
-
-							<!-- Grid -->
-							<g stroke="var(--border)" stroke-width="0.5" opacity="0.2">
-								<line x1="50" y1="0" x2="50" y2="300"/>
-								<line x1="150" y1="0" x2="150" y2="300"/>
-								<line x1="250" y1="0" x2="250" y2="300"/>
-								<line x1="0" y1="100" x2="300" y2="100"/>
-								<line x1="0" y1="200" x2="300" y2="200"/>
-							</g>
-						</svg>
+						<img src="assets/css/images/gis-hero.png" alt="Open GIS Enterprise Solutions — Free · Enterprise · Solutions" class="hero-img" width="1024" height="1024" loading="eager" decoding="async" />
 					</div>
 				</div>
 			</section>
